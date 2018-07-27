@@ -34,6 +34,10 @@ Driver boltDriver = new BoltDriver(new TracingDriver(GraphDatabase.driver(...), 
 SessionFactory sessionFactory = new SessionFactory(boltDriver);
 ```
 
+## License
+
+[Apache 2.0 License](./LICENSE).
+
 [ci-img]: https://travis-ci.org/opentracing-contrib/java-neo4j-driver.svg?branch=master
 [ci]: https://travis-ci.org/opentracing-contrib/java-neo4j-driver
 [cov-img]: https://coveralls.io/repos/github/opentracing-contrib/java-neo4j-driver/badge.svg?branch=master
