@@ -14,6 +14,7 @@
 package io.opentracing.contrib.neo4j;
 
 import io.opentracing.Tracer;
+import io.opentracing.util.GlobalTracer;
 import java.util.concurrent.CompletionStage;
 import org.neo4j.driver.v1.AccessMode;
 import org.neo4j.driver.v1.Driver;
@@ -27,6 +28,14 @@ public class TracingDriver implements Driver {
   public TracingDriver(Driver driver, Tracer tracer) {
     this.driver = driver;
     this.tracer = tracer;
+  }
+
+  /**
+   * GlobalTracer is used to get tracer
+   */
+  public TracingDriver(Driver driver) {
+    this.driver = driver;
+    this.tracer = GlobalTracer.get();
   }
 
   @Override

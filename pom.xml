@@ -62,26 +62,26 @@
 
     <opentracing.version>0.31.0</opentracing.version>
     <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version>
-    <jacoco-maven-plugin.version>0.8.1</jacoco-maven-plugin.version>
+    <jacoco-maven-plugin.version>0.8.2</jacoco-maven-plugin.version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.opentracing</groupId>
-      <artifactId>opentracing-api</artifactId>
+      <artifactId>opentracing-util</artifactId>
       <version>${opentracing.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.neo4j.driver</groupId>
       <artifactId>neo4j-java-driver</artifactId>
-      <version>1.5.1</version>
+      <version>1.6.2</version>
     </dependency>
 
     <dependency>
       <groupId>org.neo4j.test</groupId>
       <artifactId>neo4j-harness</artifactId>
-      <version>3.3.4</version>
+      <version>3.4.7</version>
       <scope>test</scope>
     </dependency>
 
@@ -95,7 +95,7 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>3.1.0</version>
+      <version>3.1.2</version>
       <scope>test</scope>
     </dependency>
 
@@ -112,7 +112,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.7.0</version>
+        <version>3.8.0</version>
         <configuration>
           <source>${java.version}</source>
           <target>${java.version}</target>
@@ -221,7 +221,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
             <configuration>
               <failOnError>false</failOnError>
             </configuration>
