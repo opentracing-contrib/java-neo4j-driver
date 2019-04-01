@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The OpenTracing Authors
+ * Copyright 2018-2019 The OpenTracing Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -84,8 +84,8 @@ class TracingHelper {
     return errorLogs;
   }
 
-  public static <T> T decorate(Supplier<T> supplier, Span span, Tracer tracer) {
-    try (Scope ignore = tracer.scopeManager().activate(span, false)) {
+  static <T> T decorate(Supplier<T> supplier, Span span, Tracer tracer) {
+    try (Scope ignore = tracer.scopeManager().activate(span)) {
       return supplier.get();
     } catch (Exception e) {
       onError(e, span);

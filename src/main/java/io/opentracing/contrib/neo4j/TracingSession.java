@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The OpenTracing Authors
+ * Copyright 2018-2019 The OpenTracing Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -28,6 +28,7 @@ import org.neo4j.driver.v1.Statement;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.StatementResultCursor;
 import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.v1.TransactionConfig;
 import org.neo4j.driver.v1.TransactionWork;
 import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.types.TypeSystem;
@@ -50,6 +51,13 @@ public class TracingSession implements Session {
   }
 
   @Override
+  public Transaction beginTransaction(TransactionConfig config) {
+    Span span = TracingHelper.build("beginTransaction", tracer);
+    span.setTag("config", config.toString());
+    return new TracingTransaction(session.beginTransaction(config), span, tracer, true);
+  }
+
+  @Override
   @Deprecated
   public Transaction beginTransaction(String bookmark) {
     Span span = TracingHelper.build("beginTransaction", tracer);
@@ -64,10 +72,24 @@ public class TracingSession implements Session {
   }
 
   @Override
+  public CompletionStage<Transaction> beginTransactionAsync(TransactionConfig config) {
+    // TODO
+    return session.beginTransactionAsync(config);
+  }
+
+  @Override
   public <T> T readTransaction(TransactionWork<T> work) {
     Span span = TracingHelper.build("readTransaction", tracer);
     return decorate(() -> session.readTransaction(
         new TracingTransactionWork<>(work, span, tracer)), span, tracer);
+  }
+
+  @Override
+  public <T> T readTransaction(TransactionWork<T> work, TransactionConfig config) {
+    Span span = TracingHelper.build("readTransaction", tracer);
+    span.setTag("config", config.toString());
+    return decorate(() -> session.readTransaction(
+        new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
   }
 
   @Override
@@ -90,10 +112,38 @@ public class TracingSession implements Session {
   }
 
   @Override
+  public <T> CompletionStage<T> readTransactionAsync(TransactionWork<CompletionStage<T>> work,
+      TransactionConfig config) {
+    Span span = TracingHelper.build("readTransactionAsync", tracer);
+    span.setTag("config", config.toString());
+    try {
+      return session.readTransactionAsync(new TracingTransactionWork<>(work, span, tracer), config)
+          .whenComplete((t, throwable) -> {
+            if (throwable != null) {
+              TracingHelper.onError(throwable, span);
+            }
+            span.finish();
+          });
+    } catch (Exception e) {
+      onError(e, span);
+      span.finish();
+      throw e;
+    }
+  }
+
+  @Override
   public <T> T writeTransaction(TransactionWork<T> work) {
     Span span = TracingHelper.build("writeTransaction", tracer);
     return decorate(() -> session.writeTransaction(
         new TracingTransactionWork<>(work, span, tracer)), span, tracer);
+  }
+
+  @Override
+  public <T> T writeTransaction(TransactionWork<T> work, TransactionConfig config) {
+    Span span = TracingHelper.build("writeTransaction", tracer);
+    span.setTag("config", config.toString());
+    return decorate(() -> session.writeTransaction(
+        new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
   }
 
   @Override
@@ -113,6 +163,80 @@ public class TracingSession implements Session {
       span.finish();
       throw e;
     }
+  }
+
+  @Override
+  public <T> CompletionStage<T> writeTransactionAsync(TransactionWork<CompletionStage<T>> work,
+      TransactionConfig config) {
+    Span span = TracingHelper.build("writeTransactionAsync", tracer);
+    span.setTag("config", config.toString());
+    try {
+      return session.writeTransactionAsync(new TracingTransactionWork<>(work, span, tracer), config)
+          .whenComplete((t, throwable) -> {
+            if (throwable != null) {
+              TracingHelper.onError(throwable, span);
+            }
+            span.finish();
+          });
+    } catch (Exception e) {
+      onError(e, span);
+      span.finish();
+      throw e;
+    }
+  }
+
+  @Override
+  public StatementResult run(String statement, TransactionConfig config) {
+    Span span = TracingHelper.build("run", tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), statement);
+    span.setTag("config", config.toString());
+    return decorate(() -> session.run(statement, config), span, tracer);
+  }
+
+  @Override
+  public StatementResult run(String statement, Map<String, Object> parameters,
+      TransactionConfig config) {
+    Span span = TracingHelper.build("run", tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), statement);
+    span.setTag("parameters", mapToString(parameters));
+    span.setTag("config", config.toString());
+    return decorate(() -> session.run(statement, parameters, config), span, tracer);
+  }
+
+  @Override
+  public StatementResult run(Statement statement, TransactionConfig config) {
+    Span span = TracingHelper.build("run", tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), statement.toString());
+    span.setTag("config", config.toString());
+    return decorate(() -> session.run(statement, config), span, tracer);
+  }
+
+  @Override
+  public CompletionStage<StatementResultCursor> runAsync(String statement,
+      TransactionConfig config) {
+    Span span = TracingHelper.build("runAsync", tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), statement);
+    span.setTag("config", config.toString());
+    return decorate(session.runAsync(statement, config), span);
+  }
+
+  @Override
+  public CompletionStage<StatementResultCursor> runAsync(String statement,
+      Map<String, Object> parameters, TransactionConfig config) {
+    Span span = TracingHelper.build("runAsync", tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), statement);
+    span.setTag("parameters", mapToString(parameters));
+    span.setTag("config", config.toString());
+    return decorate(session.runAsync(statement, parameters, config), span);
+  }
+
+  @Override
+  public CompletionStage<StatementResultCursor> runAsync(Statement statement,
+      TransactionConfig config) {
+    Span span = TracingHelper.build("runAsync", tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), statement.toString());
+    span.setTag("config", config.toString());
+    return decorate(session.runAsync(statement, config), span);
   }
 
   @Override
@@ -238,6 +362,5 @@ public class TracingSession implements Session {
   public TypeSystem typeSystem() {
     return session.typeSystem();
   }
-
 
 }

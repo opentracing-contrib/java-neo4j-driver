@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 The OpenTracing Authors
+ * Copyright 2018-2019 The OpenTracing Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -17,7 +17,6 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.neo4j.driver.v1.Values.parameters;
 
 import io.opentracing.mock.MockSpan;
@@ -133,9 +132,7 @@ public class TracingTest {
   public void testRunAsync() {
     Session session = driver.session();
     session.runAsync("UNWIND range(1, 10) AS x RETURN x")
-        .whenComplete((statementResultCursor, throwable) -> {
-          session.close();
-        });
+        .whenComplete((statementResultCursor, throwable) -> session.close());
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(1));
 
@@ -168,7 +165,7 @@ public class TracingTest {
 
   private void validateSpans(List<MockSpan> spans) {
     for (MockSpan span : spans) {
-      assertTrue(span.tags().get(Tags.SPAN_KIND.getKey()).equals(Tags.SPAN_KIND_CLIENT));
+      assertEquals(span.tags().get(Tags.SPAN_KIND.getKey()), Tags.SPAN_KIND_CLIENT);
       assertEquals(TracingHelper.COMPONENT_NAME, span.tags().get(Tags.COMPONENT.getKey()));
       assertEquals(TracingHelper.DB_TYPE, span.tags().get(Tags.DB_TYPE.getKey()));
       assertEquals(0, span.generatedErrors().size());
