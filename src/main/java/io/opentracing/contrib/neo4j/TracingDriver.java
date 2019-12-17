@@ -16,9 +16,13 @@ package io.opentracing.contrib.neo4j;
 import io.opentracing.Tracer;
 import io.opentracing.util.GlobalTracer;
 import java.util.concurrent.CompletionStage;
-import org.neo4j.driver.v1.AccessMode;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Metrics;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.async.AsyncSession;
+import org.neo4j.driver.reactive.RxSession;
+import org.neo4j.driver.types.TypeSystem;
 
 public class TracingDriver implements Driver {
 
@@ -49,30 +53,30 @@ public class TracingDriver implements Driver {
   }
 
   @Override
-  public Session session(AccessMode accessMode) {
-    return new TracingSession(driver.session(accessMode), tracer);
+  public Session session(SessionConfig config) {
+    return new TracingSession(driver.session(config), tracer);
   }
 
   @Override
-  public Session session(String s) {
-    return new TracingSession(driver.session(s), tracer);
+  public RxSession rxSession() {
+    // TODO Missing Tracing Implementation
+    return driver.rxSession();
   }
 
   @Override
-  public Session session(AccessMode accessMode,
-      String s) {
-    return new TracingSession(driver.session(accessMode, s), tracer);
+  public RxSession rxSession(SessionConfig sessionConfig) {
+    // TODO Missing Tracing Implementation
+    return driver.rxSession(sessionConfig);
   }
 
   @Override
-  public Session session(Iterable<String> iterable) {
-    return new TracingSession(driver.session(iterable), tracer);
+  public AsyncSession asyncSession() {
+    return new TracingAsyncSession(driver.asyncSession(), tracer);
   }
 
   @Override
-  public Session session(AccessMode accessMode,
-      Iterable<String> iterable) {
-    return new TracingSession(driver.session(accessMode, iterable), tracer);
+  public AsyncSession asyncSession(SessionConfig sessionConfig) {
+    return new TracingAsyncSession(driver.asyncSession(sessionConfig), tracer);
   }
 
   @Override
@@ -83,5 +87,40 @@ public class TracingDriver implements Driver {
   @Override
   public CompletionStage<Void> closeAsync() {
     return driver.closeAsync();
+  }
+
+  @Override
+  public Metrics metrics() {
+    return driver.metrics();
+  }
+
+  @Override
+  public boolean isMetricsEnabled() {
+    return driver.isMetricsEnabled();
+  }
+
+  @Override
+  public TypeSystem defaultTypeSystem() {
+    return driver.defaultTypeSystem();
+  }
+
+  @Override
+  public void verifyConnectivity() {
+    driver.verifyConnectivity();
+  }
+
+  @Override
+  public CompletionStage<Void> verifyConnectivityAsync() {
+    return driver.verifyConnectivityAsync();
+  }
+
+  @Override
+  public boolean supportsMultiDb() {
+    return driver.supportsMultiDb();
+  }
+
+  @Override
+  public CompletionStage<Boolean> supportsMultiDbAsync() {
+    return driver.supportsMultiDbAsync();
   }
 }

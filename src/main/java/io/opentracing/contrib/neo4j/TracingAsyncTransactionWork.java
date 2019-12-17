@@ -17,26 +17,28 @@ import io.opentracing.Span;
 import io.opentracing.Tracer;
 import org.neo4j.driver.Transaction;
 import org.neo4j.driver.TransactionWork;
+import org.neo4j.driver.async.AsyncTransaction;
+import org.neo4j.driver.async.AsyncTransactionWork;
 
-public class TracingTransactionWork<T> implements TransactionWork<T> {
+public class TracingAsyncTransactionWork<T> implements AsyncTransactionWork<T> {
 
   private final Tracer tracer;
 
   private final Span parent;
 
-  private final TransactionWork<T> transactionWork;
+  private final AsyncTransactionWork<T> transactionWork;
 
-  public TracingTransactionWork(TransactionWork<T> transactionWork, Span parent, Tracer tracer) {
+  public TracingAsyncTransactionWork(AsyncTransactionWork<T> transactionWork, Span parent, Tracer tracer) {
     this.transactionWork = transactionWork;
     this.tracer = tracer;
     this.parent = parent;
   }
 
   @Override
-  public T execute(Transaction tx) {
+  public T execute(AsyncTransaction tx) {
     try {
       parent.log("execute");
-      return transactionWork.execute(new TracingTransaction(tx, parent, tracer));
+      return transactionWork.execute(new TracingAsyncTransaction(tx, parent, tracer));
     } catch (Exception e) {
       TracingHelper.onError(e, parent);
       throw e;

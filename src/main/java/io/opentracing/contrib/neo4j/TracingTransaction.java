@@ -13,23 +13,18 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
-import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
-import static io.opentracing.contrib.neo4j.TracingHelper.onError;
-
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
-import org.neo4j.driver.v1.Record;
-import org.neo4j.driver.v1.Statement;
-import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.StatementResultCursor;
-import org.neo4j.driver.v1.Transaction;
-import org.neo4j.driver.v1.Value;
-import org.neo4j.driver.v1.types.TypeSystem;
-import org.neo4j.driver.v1.util.Experimental;
+import org.neo4j.driver.Query;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Transaction;
+import org.neo4j.driver.Value;
+
+import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
+import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
 
 public class TracingTransaction implements Transaction {
 
@@ -38,30 +33,19 @@ public class TracingTransaction implements Transaction {
   private final Tracer tracer;
   private final boolean finishSpan;
 
-
-  public TracingTransaction(Transaction transaction, Span parent,
+  public TracingTransaction(
+      Transaction transaction, Span parent,
       Tracer tracer) {
     this(transaction, parent, tracer, false);
   }
 
-  public TracingTransaction(Transaction transaction, Span parent, Tracer tracer,
+  public TracingTransaction(
+      Transaction transaction, Span parent, Tracer tracer,
       boolean finishSpan) {
     this.transaction = transaction;
     this.tracer = tracer;
     this.parent = parent;
     this.finishSpan = finishSpan;
-  }
-
-  @Override
-  public void success() {
-    parent.log("success");
-    transaction.success();
-  }
-
-  @Override
-  public void failure() {
-    parent.log("failure");
-    transaction.failure();
   }
 
   @Override
@@ -76,23 +60,15 @@ public class TracingTransaction implements Transaction {
   }
 
   @Override
-  public CompletionStage<Void> commitAsync() {
-    return transaction.commitAsync().whenComplete((aVoid, throwable) -> {
-      if (throwable != null) {
-        onError(throwable, parent);
-      }
-      parent.finish();
-    });
+  public void commit() {
+    transaction.commit();
+    parent.finish();
   }
 
   @Override
-  public CompletionStage<Void> rollbackAsync() {
-    return transaction.rollbackAsync().whenComplete((aVoid, throwable) -> {
-      if (throwable != null) {
-        onError(throwable, parent);
-      }
-      parent.finish();
-    });
+  public void rollback() {
+    transaction.rollback();
+    parent.finish();
   }
 
   @Override
@@ -101,8 +77,7 @@ public class TracingTransaction implements Transaction {
   }
 
   @Override
-  public StatementResult run(String statementTemplate,
-      Value parameters) {
+  public Result run(String statementTemplate, Value parameters) {
     Span span = TracingHelper.build("run", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
     span.setTag("parameters", parameters.toString());
@@ -110,16 +85,8 @@ public class TracingTransaction implements Transaction {
   }
 
   @Override
-  public CompletionStage<StatementResultCursor> runAsync(
-      String statementTemplate, Value parameters) {
-    Span span = TracingHelper.build("runAsync", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    span.setTag("parameters", parameters.toString());
-    return decorate(transaction.runAsync(statementTemplate, parameters), span);
-  }
-
-  @Override
-  public StatementResult run(String statementTemplate,
+  public Result run(
+      String statementTemplate,
       Map<String, Object> statementParameters) {
     Span span = TracingHelper.build("run", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
@@ -130,18 +97,8 @@ public class TracingTransaction implements Transaction {
   }
 
   @Override
-  public CompletionStage<StatementResultCursor> runAsync(
-      String statementTemplate, Map<String, Object> statementParameters) {
-    Span span = TracingHelper.build("runAsync", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    if (statementParameters != null) {
-      span.setTag("parameters", mapToString(statementParameters));
-    }
-    return decorate(transaction.runAsync(statementTemplate, statementParameters), span);
-  }
-
-  @Override
-  public StatementResult run(String statementTemplate,
+  public Result run(
+      String statementTemplate,
       Record statementParameters) {
     Span span = TracingHelper.build("run", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
@@ -152,51 +109,16 @@ public class TracingTransaction implements Transaction {
   }
 
   @Override
-  public CompletionStage<StatementResultCursor> runAsync(
-      String statementTemplate, Record statementParameters) {
-    Span span = TracingHelper.build("runAsync", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    if (statementParameters != null) {
-      span.setTag("parameters", TracingHelper.mapToString(statementParameters.asMap()));
-    }
-
-    return decorate(transaction.runAsync(statementTemplate, statementParameters), span);
-  }
-
-  @Override
-  public StatementResult run(String statementTemplate) {
+  public Result run(String statementTemplate) {
     Span span = TracingHelper.build("run", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
     return decorate(() -> transaction.run(statementTemplate), span, tracer);
   }
 
   @Override
-  public CompletionStage<StatementResultCursor> runAsync(
-      String statementTemplate) {
-    Span span = TracingHelper.build("runAsync", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    return decorate(transaction.runAsync(statementTemplate), span);
-  }
-
-  @Override
-  public StatementResult run(Statement statement) {
+  public Result run(Query query) {
     Span span = TracingHelper.build("run", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), statement.toString());
-    return decorate(() -> transaction.run(statement), span, tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    return decorate(() -> transaction.run(query), span, tracer);
   }
-
-  @Override
-  public CompletionStage<StatementResultCursor> runAsync(
-      Statement statement) {
-    Span span = TracingHelper.build("runAsync", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), statement.toString());
-    return decorate(transaction.runAsync(statement), span);
-  }
-
-  @Override
-  @Experimental
-  public TypeSystem typeSystem() {
-    return transaction.typeSystem();
-  }
-
 }
