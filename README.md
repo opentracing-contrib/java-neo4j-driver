@@ -1,7 +1,10 @@
 [![Build Status][ci-img]][ci] [![Coverage Status][cov-img]][cov] [![Released Version][maven-img]][maven] [![Apache-2.0 license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# OpenTracing Neo4j Driver Instrumentation
-OpenTracing instrumentation for Neo4j Driver.
+# OpenTracing Neo4j Driver 4.x Instrumentation
+OpenTracing instrumentation for Neo4j Driver 4.x.
+
+## Requirements
+- JDK 11+
 
 ## Installation
 
