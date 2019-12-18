@@ -17,23 +17,24 @@ import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
-import org.neo4j.driver.Query;
-import org.neo4j.driver.Result;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.Transaction;
+import org.neo4j.driver.async.AsyncSession;
+import org.neo4j.driver.async.ResultCursor;
 import org.neo4j.harness.junit.rule.Neo4jRule;
 
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.neo4j.driver.Values.parameters;
 
-public class TracingTest {
+public class AsyncTracingTest {
 
   private final MockTracer tracer = new MockTracer();
 
@@ -54,40 +55,20 @@ public class TracingTest {
   }
 
   @Test
-  public void testWriteTransaction() {
-    final String message = "Hello, world";
+  public void testWriteTransactionAsync() {
+    AsyncSession session = driver.asyncSession();
+    session.writeTransactionAsync(tx -> tx.runAsync("CREATE (n:Person) RETURN n")
+        .thenCompose(ResultCursor::singleAsync)
+    ).whenComplete((record, error) -> {
+      if (error != null) {
+        error.printStackTrace();
+      } else {
+        System.out.println(record);
+      }
+    });
 
-    try (Session session = driver.session()) {
-      String greeting = session.writeTransaction(tx -> {
-        Result result = tx.run(
-            "CREATE (a:Greeting) " +
-                "SET a.message = $message " +
-                "RETURN a.message + ', from node ' + id(a)",
-            parameters("message", message));
-        tx.run("CREATE (n:Person) RETURN n");
-        return result.single().get(0).asString();
-      });
-      System.out.println(greeting);
-    }
-
-    List<MockSpan> spans = tracer.finishedSpans();
-    assertEquals(3, spans.size());
-    validateSpans(spans);
-
-    assertNull(tracer.activeSpan());
-  }
-
-  @Test
-  public void testRun() {
-    try (Session session = driver.session()) {
-      Result result = session.run(new Query("CREATE (n:Person) RETURN n"));
-      System.out.println(result.single());
-    }
-
-    try (Session session = driver.session()) {
-      Result result = session.run("CREATE (n:Person) RETURN n");
-      System.out.println(result.single());
-    }
+    await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+    session.closeAsync();
 
     List<MockSpan> spans = tracer.finishedSpans();
     assertEquals(2, spans.size());
@@ -97,20 +78,18 @@ public class TracingTest {
   }
 
   @Test
-  public void testTransaction() {
-    Session session = driver.session();
-    Transaction transaction = session.beginTransaction();
-    transaction.run("UNWIND range(1, 10) AS x RETURN x");
-    transaction.run("CREATE (n:Person) RETURN n");
-    transaction.close();
-    session.close();
+  public void testRunAsync() {
+    AsyncSession session = driver.asyncSession();
+    session.runAsync("UNWIND range(1, 10) AS x RETURN x")
+        .whenComplete((statementResultCursor, throwable) -> session.closeAsync());
+
+    await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(1));
 
     List<MockSpan> spans = tracer.finishedSpans();
-    assertEquals(3, spans.size());
+    assertEquals(1, spans.size());
     validateSpans(spans);
 
     assertNull(tracer.activeSpan());
-
   }
 
   private void validateSpans(List<MockSpan> spans) {
@@ -121,4 +100,9 @@ public class TracingTest {
       assertEquals(0, span.generatedErrors().size());
     }
   }
+
+  private Callable<Integer> reportedSpansSize() {
+    return () -> tracer.finishedSpans().size();
+  }
+
 }

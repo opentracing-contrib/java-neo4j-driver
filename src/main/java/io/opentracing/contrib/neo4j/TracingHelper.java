@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.neo4j.driver.v1.StatementResultCursor;
+import org.neo4j.driver.async.ResultCursor;
 
 class TracingHelper {
 
@@ -66,8 +66,8 @@ class TracingHelper {
         .collect(Collectors.joining(", "));
   }
 
-  static CompletionStage<StatementResultCursor> decorate(
-      CompletionStage<StatementResultCursor> stage,
+  static CompletionStage<ResultCursor> decorate(
+      CompletionStage<ResultCursor> stage,
       Span span) {
     return stage.whenComplete((statementResultCursor, throwable) -> {
       if (throwable != null) {
