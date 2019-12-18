@@ -56,7 +56,7 @@
   </issueManagement>
 
   <properties>
-    <java.version>11</java.version>
+    <java.version>1.8</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
 
@@ -65,7 +65,7 @@
     <jacoco-maven-plugin.version>0.8.3</jacoco-maven-plugin.version>
 
     <neo4j-java-driver.version>4.0.0</neo4j-java-driver.version>
-    <neo4j-harness.version>4.0.0-rc01</neo4j-harness.version>
+    <neo4j-harness.version>4.0.0</neo4j-harness.version>
   </properties>
 
   <dependencies>
@@ -117,7 +117,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.0</version>
         <configuration>
-          <release>${java.version}</release>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
         </configuration>
       </plugin>
       <plugin>
