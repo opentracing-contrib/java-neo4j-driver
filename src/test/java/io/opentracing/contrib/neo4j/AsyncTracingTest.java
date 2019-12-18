@@ -13,6 +13,11 @@
  */
 package io.opentracing.contrib.neo4j;
 
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
@@ -28,11 +33,6 @@ import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.ResultCursor;
 import org.neo4j.harness.junit.rule.Neo4jRule;
-
-import static org.awaitility.Awaitility.await;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 public class AsyncTracingTest {
 

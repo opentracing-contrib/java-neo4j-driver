@@ -13,6 +13,10 @@
  */
 package io.opentracing.contrib.neo4j;
 
+import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
+import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
+import static io.opentracing.contrib.neo4j.TracingHelper.onError;
+
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
@@ -27,10 +31,6 @@ import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.AsyncTransactionWork;
 import org.neo4j.driver.async.ResultCursor;
-
-import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
-import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
-import static io.opentracing.contrib.neo4j.TracingHelper.onError;
 
 public class TracingAsyncSession implements AsyncSession {
 
@@ -55,7 +55,8 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> readTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work) {
+  public <T> CompletionStage<T> readTransactionAsync(
+      AsyncTransactionWork<CompletionStage<T>> work) {
     Span span = TracingHelper.build("readTransactionAsync", tracer);
     try {
       return session.readTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer))
@@ -78,7 +79,8 @@ public class TracingAsyncSession implements AsyncSession {
     Span span = TracingHelper.build("readTransactionAsync", tracer);
     span.setTag("config", config.toString());
     try {
-      return session.readTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer), config)
+      return session
+          .readTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer), config)
           .whenComplete((t, throwable) -> {
             if (throwable != null) {
               onError(throwable, span);
@@ -93,7 +95,8 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> writeTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work) {
+  public <T> CompletionStage<T> writeTransactionAsync(
+      AsyncTransactionWork<CompletionStage<T>> work) {
     Span span = TracingHelper.build("writeTransactionAsync", tracer);
     try {
       return session.writeTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer))
@@ -116,7 +119,8 @@ public class TracingAsyncSession implements AsyncSession {
     Span span = TracingHelper.build("writeTransactionAsync", tracer);
     span.setTag("config", config.toString());
     try {
-      return session.writeTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer), config)
+      return session
+          .writeTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer), config)
           .whenComplete((t, throwable) -> {
             if (throwable != null) {
               onError(throwable, span);

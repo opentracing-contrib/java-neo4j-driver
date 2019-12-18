@@ -13,6 +13,10 @@
  */
 package io.opentracing.contrib.neo4j;
 
+import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
+import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
+import static io.opentracing.contrib.neo4j.TracingHelper.onError;
+
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
@@ -20,15 +24,9 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
-import org.neo4j.driver.Result;
-import org.neo4j.driver.Transaction;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.ResultCursor;
-
-import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
-import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
-import static io.opentracing.contrib.neo4j.TracingHelper.onError;
 
 public class TracingAsyncTransaction implements AsyncTransaction {
 

@@ -15,8 +15,6 @@ package io.opentracing.contrib.neo4j;
 
 import io.opentracing.Span;
 import io.opentracing.Tracer;
-import org.neo4j.driver.Transaction;
-import org.neo4j.driver.TransactionWork;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.AsyncTransactionWork;
 
@@ -28,7 +26,8 @@ public class TracingAsyncTransactionWork<T> implements AsyncTransactionWork<T> {
 
   private final AsyncTransactionWork<T> transactionWork;
 
-  public TracingAsyncTransactionWork(AsyncTransactionWork<T> transactionWork, Span parent, Tracer tracer) {
+  public TracingAsyncTransactionWork(AsyncTransactionWork<T> transactionWork, Span parent,
+      Tracer tracer) {
     this.transactionWork = transactionWork;
     this.tracer = tracer;
     this.parent = parent;

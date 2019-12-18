@@ -13,6 +13,10 @@
  */
 package io.opentracing.contrib.neo4j;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.neo4j.driver.Values.parameters;
+
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
@@ -28,10 +32,6 @@ import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.Transaction;
 import org.neo4j.harness.junit.rule.Neo4jRule;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.neo4j.driver.Values.parameters;
 
 public class TracingTest {
 
