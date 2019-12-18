@@ -18,7 +18,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.opentracing.contrib</groupId>
   <artifactId>opentracing-neo4j-driver</artifactId>
-  <version>0.1.1-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
 
   <name>OpenTracing Instrumentation for Neo4j Driver</name>
   <description>OpenTracing Instrumentation for Neo4j Driver</description>
