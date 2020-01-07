@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 The OpenTracing Authors
+ * Copyright 2018-2020 The OpenTracing Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
@@ -32,7 +32,7 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.ResultCursor;
-import org.neo4j.harness.junit.rule.Neo4jRule;
+import org.neo4j.harness.junit.Neo4jRule;
 
 public class AsyncTracingTest {
 

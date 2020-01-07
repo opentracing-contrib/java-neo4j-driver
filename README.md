@@ -3,9 +3,6 @@
 # OpenTracing Neo4j Driver 4.x Instrumentation
 OpenTracing instrumentation for Neo4j Driver 4.x.
 
-## Requirements
-- JDK 11+
-
 ## Installation
 
 pom.xml
@@ -22,9 +19,6 @@ pom.xml
 ```java
 // Instantiate tracer
 Tracer tracer = ...
-
-// Optionally register tracer with GlobalTracer
-GlobalTracer.register(tracer);
 
 // Decorate Neo4j Driver with Tracing Driver
 Driver driver = new TracingDriver(GraphDatabase.driver(...), tracer);
