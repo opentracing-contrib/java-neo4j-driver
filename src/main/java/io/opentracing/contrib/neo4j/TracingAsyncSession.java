@@ -156,7 +156,8 @@ public class TracingAsyncSession implements AsyncSession {
   @Override
   public CompletionStage<ResultCursor> runAsync(Query query, TransactionConfig config) {
     Span span = TracingHelper.build("runAsync", tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
+    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
     span.setTag("config", config.toString());
     return decorate(session.runAsync(query, config), span);
   }
@@ -210,7 +211,8 @@ public class TracingAsyncSession implements AsyncSession {
   @Override
   public CompletionStage<ResultCursor> runAsync(Query query) {
     Span span = TracingHelper.build("run", tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
+    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
     return decorate(session.runAsync(query), span);
   }
 }

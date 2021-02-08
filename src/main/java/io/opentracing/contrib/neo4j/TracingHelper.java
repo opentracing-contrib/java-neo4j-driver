@@ -18,12 +18,14 @@ import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.Tracer.SpanBuilder;
 import io.opentracing.tag.Tags;
+import org.neo4j.driver.async.ResultCursor;
+import org.neo4j.driver.reactive.RxResult;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.neo4j.driver.async.ResultCursor;
 
 class TracingHelper {
 
@@ -36,9 +38,9 @@ class TracingHelper {
 
   static Span build(String operationName, Span parent, Tracer tracer) {
     SpanBuilder builder = tracer.buildSpan(operationName)
-        .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
-        .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-        .withTag(Tags.DB_TYPE.getKey(), DB_TYPE);
+            .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
+            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
+            .withTag(Tags.DB_TYPE.getKey(), DB_TYPE);
     if (parent != null) {
       builder.asChildOf(parent);
     }
@@ -61,20 +63,22 @@ class TracingHelper {
       return "";
     }
     return map.entrySet()
-        .stream()
-        .map(entry -> entry.getKey() + " -> " + entry.getValue())
-        .collect(Collectors.joining(", "));
+            .stream()
+            .map(entry -> entry.getKey() + " -> " + entry.getValue())
+            .collect(Collectors.joining(", "));
   }
 
-  static CompletionStage<ResultCursor> decorate(
-      CompletionStage<ResultCursor> stage,
-      Span span) {
+  static CompletionStage<ResultCursor> decorate(CompletionStage<ResultCursor> stage, Span span) {
     return stage.whenComplete((statementResultCursor, throwable) -> {
       if (throwable != null) {
         onError(throwable, span);
       }
       span.finish();
     });
+  }
+
+  static RxResult decorate(RxResult result, Span span) {
+    return new TracingRxResult(result, span);
   }
 
   private static Map<String, Object> errorLogs(Throwable throwable) {

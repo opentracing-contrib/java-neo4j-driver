@@ -118,7 +118,8 @@ public class TracingTransaction implements Transaction {
   @Override
   public Result run(Query query) {
     Span span = TracingHelper.build("run", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
+    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
     return decorate(() -> transaction.run(query), span, tracer);
   }
 }

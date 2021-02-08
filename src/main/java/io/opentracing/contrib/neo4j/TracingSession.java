@@ -105,7 +105,8 @@ public class TracingSession implements Session {
   @Override
   public Result run(Query query, TransactionConfig config) {
     Span span = TracingHelper.build("run", tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
+    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
     span.setTag("config", config.toString());
     return decorate(() -> session.run(query, config), span, tracer);
   }
@@ -175,7 +176,8 @@ public class TracingSession implements Session {
   @Override
   public Result run(Query query) {
     Span span = TracingHelper.build("run", tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
+    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
     return decorate(() -> session.run(query), span, tracer);
   }
 }

@@ -110,7 +110,8 @@ public class TracingAsyncTransaction implements AsyncTransaction {
   @Override
   public CompletionStage<ResultCursor> runAsync(Query query) {
     Span span = TracingHelper.build("runAsync", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
+    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
     return decorate(transaction.runAsync(query), span);
   }
 }

@@ -71,6 +71,7 @@
 
     <neo4j-java-driver.version>4.2.0</neo4j-java-driver.version>
     <testcontainers.version>1.15.1</testcontainers.version>
+    <reactor.version>3.4.2</reactor.version>
     <awaitility.version>4.0.0</awaitility.version>
     <junit.version>4.13.1</junit.version>
     <slf4j.version>1.7.30</slf4j.version>
@@ -136,6 +137,13 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-test</artifactId>
+      <version>${reactor.version}</version>
       <scope>test</scope>
     </dependency>
 

@@ -24,9 +24,13 @@ import org.neo4j.driver.AuthToken;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
-import org.neo4j.driver.async.AsyncSession;
-import org.neo4j.driver.async.ResultCursor;
+import org.neo4j.driver.reactive.RxResult;
+import org.neo4j.driver.reactive.RxSession;
+import org.neo4j.driver.summary.ResultSummary;
 import org.testcontainers.containers.Neo4jContainer;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -39,7 +43,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class AsyncTracingTest {
+public class RxTracingTest {
 
   private final MockTracer tracer = new MockTracer();
 
@@ -61,45 +65,82 @@ public class AsyncTracingTest {
   }
 
   @Test
-  public void testWriteTransactionAsync() {
-    AsyncSession session = driver.asyncSession();
-    session.writeTransactionAsync(tx -> tx.runAsync("CREATE (n:Person) RETURN n")
-            .thenCompose(ResultCursor::singleAsync)
-    ).whenComplete((record, error) -> {
-      if (error != null) {
-        error.printStackTrace();
-      } else {
-        System.out.println(record);
-      }
-    });
+  public void testWriteTransactionRx() {
+    String query = "CREATE (n:Person) RETURN n";
+    Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
+            session -> session.writeTransaction(tx -> {
+                      RxResult result = tx.run(query);
+                      return Flux.from(result.records())
+                              .doOnNext(record -> System.out.println(record.toString())).then(Mono.from(result.consume()));
+                    }
+            ), RxSession::close);
+
+    resultSummaries.as(StepVerifier::create)
+            .expectNextCount(1)
+            .verifyComplete();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
-    session.closeAsync();
 
     List<MockSpan> spans = tracer.finishedSpans();
     assertEquals(2, spans.size());
-    validateSpans(spans);
+    validateSpans(spans, "runRx", "writeTransactionRx");
 
     assertNull(tracer.activeSpan());
   }
 
   @Test
-  public void testRunAsync() {
-    AsyncSession session = driver.asyncSession();
-    session.runAsync("UNWIND range(1, 10) AS x RETURN x")
-            .whenComplete((statementResultCursor, throwable) -> session.closeAsync());
+  public void testReadTransactionRx() {
+    String query = "UNWIND range(1, 10) AS x RETURN x";
+    Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
+            session -> session.readTransaction(tx -> {
+                      RxResult result = tx.run(query);
+                      return Flux.from(result.records())
+                              .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
+                    }
+            ), RxSession::close);
+
+    resultSummaries.as(StepVerifier::create)
+            .expectNextCount(1)
+            .verifyComplete();
+
+    await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+    List<MockSpan> spans = tracer.finishedSpans();
+    assertEquals(2, spans.size());
+    validateSpans(spans, "runRx", "readTransactionRx");
+
+    assertNull(tracer.activeSpan());
+  }
+
+  @Test
+  public void testRunRx() {
+    String query = "UNWIND range(1, 10) AS x RETURN x";
+
+    Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
+            session -> {
+              RxResult result = session.run(query);
+              return Flux.from(result.records())
+                      .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
+            },
+            RxSession::close);
+
+    resultSummaries.as(StepVerifier::create)
+            .expectNextCount(1)
+            .verifyComplete();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(1));
 
     List<MockSpan> spans = tracer.finishedSpans();
     assertEquals(1, spans.size());
-    validateSpans(spans);
+    validateSpans(spans, "runRx");
 
     assertNull(tracer.activeSpan());
   }
 
-  private void validateSpans(List<MockSpan> spans) {
-    for (MockSpan span : spans) {
+  private void validateSpans(List<MockSpan> spans, String... spanNames) {
+    for (int i = 0; i < spans.size(); i++) {
+      MockSpan span = spans.get(i);
+      assertEquals(spanNames[i], span.operationName());
       assertEquals(span.tags().get(Tags.SPAN_KIND.getKey()), Tags.SPAN_KIND_CLIENT);
       assertEquals(TracingHelper.COMPONENT_NAME, span.tags().get(Tags.COMPONENT.getKey()));
       assertEquals(TracingHelper.DB_TYPE, span.tags().get(Tags.DB_TYPE.getKey()));
