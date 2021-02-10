@@ -13,10 +13,6 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
-import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
-import static io.opentracing.contrib.neo4j.TracingHelper.onError;
-
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
@@ -31,6 +27,8 @@ import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.AsyncTransactionWork;
 import org.neo4j.driver.async.ResultCursor;
+
+import static io.opentracing.contrib.neo4j.TracingHelper.*;
 
 public class TracingAsyncSession implements AsyncSession {
 
@@ -55,8 +53,7 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> readTransactionAsync(
-      AsyncTransactionWork<CompletionStage<T>> work) {
+  public <T> CompletionStage<T> readTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work) {
     Span span = TracingHelper.build("readTransactionAsync", tracer);
     try {
       return session.readTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer))
@@ -74,8 +71,7 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> readTransactionAsync(
-      AsyncTransactionWork<CompletionStage<T>> work, TransactionConfig config) {
+  public <T> CompletionStage<T> readTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work, TransactionConfig config) {
     Span span = TracingHelper.build("readTransactionAsync", tracer);
     span.setTag("config", config.toString());
     try {
@@ -114,8 +110,7 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> writeTransactionAsync(
-      AsyncTransactionWork<CompletionStage<T>> work, TransactionConfig config) {
+  public <T> CompletionStage<T> writeTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work, TransactionConfig config) {
     Span span = TracingHelper.build("writeTransactionAsync", tracer);
     span.setTag("config", config.toString());
     try {
@@ -135,8 +130,7 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(
-      String query, TransactionConfig config) {
+  public CompletionStage<ResultCursor> runAsync(String query, TransactionConfig config) {
     Span span = TracingHelper.build("runAsync", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
     span.setTag("config", config.toString());
@@ -144,11 +138,12 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(
-      String query, Map<String, Object> parameters, TransactionConfig config) {
+  public CompletionStage<ResultCursor> runAsync(String query, Map<String, Object> parameters, TransactionConfig config) {
     Span span = TracingHelper.build("runAsync", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    span.setTag("parameters", mapToString(parameters));
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     span.setTag("config", config.toString());
     return decorate(session.runAsync(query, parameters, config), span);
   }
@@ -157,7 +152,10 @@ public class TracingAsyncSession implements AsyncSession {
   public CompletionStage<ResultCursor> runAsync(Query query, TransactionConfig config) {
     Span span = TracingHelper.build("runAsync", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
-    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     span.setTag("config", config.toString());
     return decorate(session.runAsync(query, config), span);
   }
@@ -173,13 +171,14 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(String query, Value parameters) {
+  public CompletionStage<ResultCursor> runAsync(String query, Value parametersValue) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    if (parameters != null) {
-      span.setTag("parameters", parameters.toString());
+    Map<String, Object> parameters = parametersValue.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
-    return decorate(session.runAsync(query, parameters), span);
+    return decorate(session.runAsync(query, parametersValue), span);
   }
 
   @Override
@@ -187,18 +186,21 @@ public class TracingAsyncSession implements AsyncSession {
       String query, Map<String, Object> parameters) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    span.setTag("parameters", mapToString(parameters));
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     return decorate(session.runAsync(query, parameters), span);
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(String query, Record parameters) {
+  public CompletionStage<ResultCursor> runAsync(String query, Record parametersRecord) {
     Span span = TracingHelper.build("runAsync", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    if (parameters != null) {
-      span.setTag("parameters", mapToString(parameters.asMap()));
+    Map<String, Object> parameters = parametersRecord.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
-    return decorate(session.runAsync(query, parameters), span);
+    return decorate(session.runAsync(query, parametersRecord), span);
   }
 
   @Override
@@ -212,7 +214,10 @@ public class TracingAsyncSession implements AsyncSession {
   public CompletionStage<ResultCursor> runAsync(Query query) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
-    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     return decorate(session.runAsync(query), span);
   }
 }

@@ -58,6 +58,10 @@ class TracingHelper {
     }
   }
 
+  static boolean isNotEmpty(Map<?, ?> map) {
+    return map != null && !map.isEmpty();
+  }
+
   static String mapToString(Map<String, Object> map) {
     if (map == null) {
       return "";

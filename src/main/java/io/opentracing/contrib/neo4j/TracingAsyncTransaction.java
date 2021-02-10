@@ -13,10 +13,6 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
-import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
-import static io.opentracing.contrib.neo4j.TracingHelper.onError;
-
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
@@ -28,6 +24,8 @@ import org.neo4j.driver.Value;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.ResultCursor;
 
+import static io.opentracing.contrib.neo4j.TracingHelper.*;
+
 public class TracingAsyncTransaction implements AsyncTransaction {
 
   private final AsyncTransaction transaction;
@@ -35,15 +33,11 @@ public class TracingAsyncTransaction implements AsyncTransaction {
   private final Tracer tracer;
   private final boolean finishSpan;
 
-  public TracingAsyncTransaction(
-      AsyncTransaction transaction, Span parent,
-      Tracer tracer) {
+  public TracingAsyncTransaction(AsyncTransaction transaction, Span parent, Tracer tracer) {
     this(transaction, parent, tracer, false);
   }
 
-  public TracingAsyncTransaction(
-      AsyncTransaction transaction, Span parent, Tracer tracer,
-      boolean finishSpan) {
+  public TracingAsyncTransaction(AsyncTransaction transaction, Span parent, Tracer tracer, boolean finishSpan) {
     this.transaction = transaction;
     this.tracer = tracer;
     this.parent = parent;
@@ -71,33 +65,35 @@ public class TracingAsyncTransaction implements AsyncTransaction {
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(String query, Value parameters) {
+  public CompletionStage<ResultCursor> runAsync(String query, Value parametersValue) {
     Span span = TracingHelper.build("runAsync", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    span.setTag("parameters", parameters.toString());
-    return decorate(transaction.runAsync(query, parameters), span);
+    Map<String, Object> parameters = parametersValue.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
+    return decorate(transaction.runAsync(query, parametersValue), span);
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(
-      String query, Map<String, Object> parameters) {
+  public CompletionStage<ResultCursor> runAsync(String query, Map<String, Object> parameters) {
     Span span = TracingHelper.build("runAsync", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    if (parameters != null) {
+    if (isNotEmpty(parameters)) {
       span.setTag("parameters", mapToString(parameters));
     }
     return decorate(transaction.runAsync(query, parameters), span);
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(String query, Record parameters) {
+  public CompletionStage<ResultCursor> runAsync(String query, Record parametersRecord) {
     Span span = TracingHelper.build("runAsync", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    if (parameters != null) {
-      span.setTag("parameters", TracingHelper.mapToString(parameters.asMap()));
+    Map<String, Object> parameters = parametersRecord.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
-
-    return decorate(transaction.runAsync(query, parameters), span);
+    return decorate(transaction.runAsync(query, parametersRecord), span);
   }
 
   @Override
@@ -111,7 +107,10 @@ public class TracingAsyncTransaction implements AsyncTransaction {
   public CompletionStage<ResultCursor> runAsync(Query query) {
     Span span = TracingHelper.build("runAsync", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
-    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     return decorate(transaction.runAsync(query), span);
   }
 }

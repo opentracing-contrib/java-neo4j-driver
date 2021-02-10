@@ -13,22 +13,14 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
-import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
-
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
+import org.neo4j.driver.*;
+
 import java.util.Map;
-import org.neo4j.driver.Bookmark;
-import org.neo4j.driver.Query;
-import org.neo4j.driver.Record;
-import org.neo4j.driver.Result;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.Transaction;
-import org.neo4j.driver.TransactionConfig;
-import org.neo4j.driver.TransactionWork;
-import org.neo4j.driver.Value;
+
+import static io.opentracing.contrib.neo4j.TracingHelper.*;
 
 public class TracingSession implements Session {
 
@@ -57,7 +49,7 @@ public class TracingSession implements Session {
   public <T> T readTransaction(TransactionWork<T> work) {
     Span span = TracingHelper.build("readTransaction", tracer);
     return decorate(() -> session.readTransaction(
-        new TracingTransactionWork<>(work, span, tracer)), span, tracer);
+            new TracingTransactionWork<>(work, span, tracer)), span, tracer);
   }
 
   @Override
@@ -65,14 +57,14 @@ public class TracingSession implements Session {
     Span span = TracingHelper.build("readTransaction", tracer);
     span.setTag("config", config.toString());
     return decorate(() -> session.readTransaction(
-        new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
+            new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
   }
 
   @Override
   public <T> T writeTransaction(TransactionWork<T> work) {
     Span span = TracingHelper.build("writeTransaction", tracer);
     return decorate(() -> session.writeTransaction(
-        new TracingTransactionWork<>(work, span, tracer)), span, tracer);
+            new TracingTransactionWork<>(work, span, tracer)), span, tracer);
   }
 
   @Override
@@ -80,7 +72,7 @@ public class TracingSession implements Session {
     Span span = TracingHelper.build("writeTransaction", tracer);
     span.setTag("config", config.toString());
     return decorate(() -> session.writeTransaction(
-        new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
+            new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
   }
 
   @Override
@@ -92,12 +84,12 @@ public class TracingSession implements Session {
   }
 
   @Override
-  public Result run(
-      String statement, Map<String, Object> parameters,
-      TransactionConfig config) {
+  public Result run(String statement, Map<String, Object> parameters, TransactionConfig config) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statement);
-    span.setTag("parameters", mapToString(parameters));
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     span.setTag("config", config.toString());
     return decorate(() -> session.run(statement, parameters, config), span, tracer);
   }
@@ -106,7 +98,10 @@ public class TracingSession implements Session {
   public Result run(Query query, TransactionConfig config) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
-    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     span.setTag("config", config.toString());
     return decorate(() -> session.run(query, config), span, tracer);
   }
@@ -133,35 +128,33 @@ public class TracingSession implements Session {
   }
 
   @Override
-  public Result run(
-      String statementTemplate,
-      Value parameters) {
+  public Result run(String statementTemplate, Value parametersValue) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    if (parameters != null) {
-      span.setTag("parameters", parameters.toString());
+    Map<String, Object> parameters = parametersValue.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
+    return decorate(() -> session.run(statementTemplate, parametersValue), span, tracer);
+  }
+
+  @Override
+  public Result run(String statementTemplate, Map<String, Object> parameters) {
+    Span span = TracingHelper.build("run", tracer);
+    span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
     return decorate(() -> session.run(statementTemplate, parameters), span, tracer);
   }
 
   @Override
-  public Result run(
-      String statementTemplate,
-      Map<String, Object> statementParameters) {
+  public Result run(String statementTemplate, Record statementParameters) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    span.setTag("parameters", mapToString(statementParameters));
-    return decorate(() -> session.run(statementTemplate, statementParameters), span, tracer);
-  }
-
-  @Override
-  public Result run(
-      String statementTemplate,
-      Record statementParameters) {
-    Span span = TracingHelper.build("run", tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    if (statementParameters != null) {
-      span.setTag("parameters", mapToString(statementParameters.asMap()));
+    Map<String, Object> parameters = statementParameters.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
     return decorate(() -> session.run(statementTemplate, statementParameters), span, tracer);
   }
@@ -177,7 +170,10 @@ public class TracingSession implements Session {
   public Result run(Query query) {
     Span span = TracingHelper.build("run", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
-    span.setTag("parameters", TracingHelper.mapToString(query.parameters().asMap()));
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     return decorate(() -> session.run(query), span, tracer);
   }
 }

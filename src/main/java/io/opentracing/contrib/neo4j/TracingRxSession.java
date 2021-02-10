@@ -58,7 +58,7 @@ public class TracingRxSession implements RxSession {
     Span span = TracingHelper.build("readTransactionRx", tracer);
 
     return Flux.from(rxSession.readTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer)))
-            .doOnComplete(() -> span.finish())
+            .doOnComplete(span::finish)
             .doOnError(throwable -> {
               onError(throwable, span);
               span.finish();
@@ -70,7 +70,7 @@ public class TracingRxSession implements RxSession {
     Span span = TracingHelper.build("readTransactionRx", tracer);
 
     return Flux.from(rxSession.readTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer), transactionConfig))
-            .doOnComplete(() -> span.finish())
+            .doOnComplete(span::finish)
             .doOnError(throwable -> {
               onError(throwable, span);
               span.finish();
@@ -82,7 +82,7 @@ public class TracingRxSession implements RxSession {
     Span span = TracingHelper.build("writeTransactionRx", tracer);
 
     return Flux.from(rxSession.writeTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer)))
-            .doOnComplete(() -> span.finish())
+            .doOnComplete(span::finish)
             .doOnError(throwable -> {
               onError(throwable, span);
               span.finish();
@@ -94,7 +94,7 @@ public class TracingRxSession implements RxSession {
     Span span = TracingHelper.build("writeTransactionRx", tracer);
 
     return Flux.from(rxSession.writeTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer), transactionConfig))
-            .doOnComplete(() -> span.finish())
+            .doOnComplete(span::finish)
             .doOnError(throwable -> {
               onError(throwable, span);
               span.finish();
@@ -125,7 +125,7 @@ public class TracingRxSession implements RxSession {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
     span.setTag("config", transactionConfig.toString());
-    if (parameters != null) {
+    if (isNotEmpty(parameters)) {
       span.setTag("parameters", mapToString(parameters));
     }
 
@@ -137,27 +137,31 @@ public class TracingRxSession implements RxSession {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
     span.setTag("config", transactionConfig.toString());
-    span.setTag("parameters", mapToString(query.parameters().asMap()));
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
 
     return new TracingRxResult(rxSession.run(query, transactionConfig), span);
   }
 
   @Override
-  public RxResult run(String query, Value parameters) {
+  public RxResult run(String query, Value parametersValue) {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    if (parameters != null) {
-      span.setTag("parameters", parameters.toString());
+    Map<String, Object> parameters = parametersValue.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
 
-    return new TracingRxResult(rxSession.run(query, parameters), span);
+    return new TracingRxResult(rxSession.run(query, parametersValue), span);
   }
 
   @Override
   public RxResult run(String query, Map<String, Object> parameters) {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    if (parameters != null) {
+    if (isNotEmpty(parameters)) {
       span.setTag("parameters", mapToString(parameters));
     }
 
@@ -165,14 +169,15 @@ public class TracingRxSession implements RxSession {
   }
 
   @Override
-  public RxResult run(String query, Record parameters) {
+  public RxResult run(String query, Record parametersRecord) {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    if (parameters != null) {
-      span.setTag("parameters", parameters.toString());
+    Map<String, Object> parameters = parametersRecord.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
 
-    return new TracingRxResult(rxSession.run(query, parameters), span);
+    return new TracingRxResult(rxSession.run(query, parametersRecord), span);
   }
 
   @Override
@@ -187,7 +192,10 @@ public class TracingRxSession implements RxSession {
   public RxResult run(Query query) {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
-    span.setTag("parameters", mapToString(query.parameters().asMap()));
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
 
     return new TracingRxResult(rxSession.run(query), span);
   }
