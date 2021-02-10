@@ -117,7 +117,7 @@ public class TracingRxSession implements RxSession {
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
     span.setTag("config", transactionConfig.toString());
 
-    return decorate(rxSession.run(query, transactionConfig), span);
+    return new TracingRxResult(rxSession.run(query, transactionConfig), span);
   }
 
   @Override
@@ -129,7 +129,7 @@ public class TracingRxSession implements RxSession {
       span.setTag("parameters", mapToString(parameters));
     }
 
-    return decorate(rxSession.run(query, parameters, transactionConfig), span);
+    return new TracingRxResult(rxSession.run(query, parameters, transactionConfig), span);
   }
 
   @Override
@@ -139,7 +139,7 @@ public class TracingRxSession implements RxSession {
     span.setTag("config", transactionConfig.toString());
     span.setTag("parameters", mapToString(query.parameters().asMap()));
 
-    return decorate(rxSession.run(query, transactionConfig), span);
+    return new TracingRxResult(rxSession.run(query, transactionConfig), span);
   }
 
   @Override
@@ -150,7 +150,7 @@ public class TracingRxSession implements RxSession {
       span.setTag("parameters", parameters.toString());
     }
 
-    return decorate(rxSession.run(query, parameters), span);
+    return new TracingRxResult(rxSession.run(query, parameters), span);
   }
 
   @Override
@@ -161,7 +161,7 @@ public class TracingRxSession implements RxSession {
       span.setTag("parameters", mapToString(parameters));
     }
 
-    return decorate(rxSession.run(query, parameters), span);
+    return new TracingRxResult(rxSession.run(query, parameters), span);
   }
 
   @Override
@@ -172,7 +172,7 @@ public class TracingRxSession implements RxSession {
       span.setTag("parameters", parameters.toString());
     }
 
-    return decorate(rxSession.run(query, parameters), span);
+    return new TracingRxResult(rxSession.run(query, parameters), span);
   }
 
   @Override
@@ -180,7 +180,7 @@ public class TracingRxSession implements RxSession {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
 
-    return decorate(rxSession.run(query), span);
+    return new TracingRxResult(rxSession.run(query), span);
   }
 
   @Override
@@ -189,6 +189,6 @@ public class TracingRxSession implements RxSession {
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
     span.setTag("parameters", mapToString(query.parameters().asMap()));
 
-    return decorate(rxSession.run(query), span);
+    return new TracingRxResult(rxSession.run(query), span);
   }
 }

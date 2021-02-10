@@ -77,10 +77,6 @@ class TracingHelper {
     });
   }
 
-  static RxResult decorate(RxResult result, Span span) {
-    return new TracingRxResult(result, span);
-  }
-
   private static Map<String, Object> errorLogs(Throwable throwable) {
     Map<String, Object> errorLogs = new HashMap<>(2);
     errorLogs.put("event", Tags.ERROR.getKey());

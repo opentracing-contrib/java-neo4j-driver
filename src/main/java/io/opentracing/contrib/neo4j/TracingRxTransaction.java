@@ -73,7 +73,7 @@ public class TracingRxTransaction implements RxTransaction {
     Span span = TracingHelper.build("runRx", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
     span.setTag("parameters", parameters.toString());
-    return decorate(transaction.run(query, parameters), span);
+    return new TracingRxResult(transaction.run(query, parameters), span);
   }
 
   @Override
@@ -83,7 +83,7 @@ public class TracingRxTransaction implements RxTransaction {
     if (parameters != null) {
       span.setTag("parameters", mapToString(parameters));
     }
-    return decorate(transaction.run(query, parameters), span);
+    return new TracingRxResult(transaction.run(query, parameters), span);
   }
 
   @Override
@@ -93,14 +93,14 @@ public class TracingRxTransaction implements RxTransaction {
     if (parameters != null) {
       span.setTag("parameters", mapToString(parameters.asMap()));
     }
-    return decorate(transaction.run(query, parameters), span);
+    return new TracingRxResult(transaction.run(query, parameters), span);
   }
 
   @Override
   public RxResult run(String query) {
     Span span = TracingHelper.build("runRx", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
-    return decorate(transaction.run(query), span);
+    return new TracingRxResult(transaction.run(query), span);
   }
 
   @Override
@@ -108,6 +108,6 @@ public class TracingRxTransaction implements RxTransaction {
     Span span = TracingHelper.build("runRx", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
     span.setTag("parameters", mapToString(query.parameters().asMap()));
-    return decorate(transaction.run(query), span);
+    return new TracingRxResult(transaction.run(query), span);
   }
 }
