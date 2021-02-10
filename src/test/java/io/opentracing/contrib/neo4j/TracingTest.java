@@ -13,39 +13,39 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.neo4j.driver.Values.parameters;
-
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
-import java.util.List;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.GraphDatabase;
-import org.neo4j.driver.Query;
-import org.neo4j.driver.Result;
-import org.neo4j.driver.Session;
-import org.neo4j.driver.Transaction;
-import org.neo4j.harness.junit.Neo4jRule;
+import org.neo4j.driver.*;
+import org.testcontainers.containers.Neo4jContainer;
+import org.testcontainers.utility.DockerImageName;
+
+import java.util.List;
+
+import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_IMAGE;
+import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_PASSWORD;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.neo4j.driver.Values.parameters;
 
 public class TracingTest {
 
   private final MockTracer tracer = new MockTracer();
 
-  @Rule
-  public Neo4jRule neoServer = new Neo4jRule();
+  @ClassRule
+  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE).withAdminPassword(NEO4J_PASSWORD);
 
   private Driver driver;
 
   @Before
   public void before() {
     tracer.reset();
-    driver = new TracingDriver(GraphDatabase.driver(neoServer.boltURI().toString()), tracer);
+    AuthToken authToken = AuthTokens.basic(TestConstants.NEO4J_USER, NEO4J_PASSWORD);
+    driver = new TracingDriver(GraphDatabase.driver(neo4j.getBoltUrl(), authToken), tracer);
   }
 
   @After
@@ -60,10 +60,10 @@ public class TracingTest {
     try (Session session = driver.session()) {
       String greeting = session.writeTransaction(tx -> {
         Result result = tx.run(
-            "CREATE (a:Greeting) " +
-                "SET a.message = $message " +
-                "RETURN a.message + ', from node ' + id(a)",
-            parameters("message", message));
+                "CREATE (a:Greeting) " +
+                        "SET a.message = $message " +
+                        "RETURN a.message + ', from node ' + id(a)",
+                parameters("message", message));
         tx.run("CREATE (n:Person) RETURN n");
         return result.single().get(0).asString();
       });

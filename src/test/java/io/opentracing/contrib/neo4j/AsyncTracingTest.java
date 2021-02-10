@@ -13,40 +13,44 @@
  */
 package io.opentracing.contrib.neo4j;
 
+import io.opentracing.mock.MockSpan;
+import io.opentracing.mock.MockTracer;
+import io.opentracing.tag.Tags;
+import org.junit.*;
+import org.neo4j.driver.AuthToken;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.async.AsyncSession;
+import org.neo4j.driver.async.ResultCursor;
+import org.testcontainers.containers.Neo4jContainer;
+import org.testcontainers.utility.DockerImageName;
+
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+
+import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_IMAGE;
+import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_PASSWORD;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import io.opentracing.mock.MockSpan;
-import io.opentracing.mock.MockTracer;
-import io.opentracing.tag.Tags;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.GraphDatabase;
-import org.neo4j.driver.async.AsyncSession;
-import org.neo4j.driver.async.ResultCursor;
-import org.neo4j.harness.junit.Neo4jRule;
-
 public class AsyncTracingTest {
 
   private final MockTracer tracer = new MockTracer();
 
-  @Rule
-  public Neo4jRule neoServer = new Neo4jRule();
+  @ClassRule
+  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE).withAdminPassword(NEO4J_PASSWORD);
 
   private Driver driver;
 
   @Before
   public void before() {
     tracer.reset();
-    driver = new TracingDriver(GraphDatabase.driver(neoServer.boltURI().toString()), tracer);
+    AuthToken authToken = AuthTokens.basic(TestConstants.NEO4J_USER, NEO4J_PASSWORD);
+    driver = new TracingDriver(GraphDatabase.driver(neo4j.getBoltUrl(), authToken), tracer);
   }
 
   @After
@@ -58,7 +62,7 @@ public class AsyncTracingTest {
   public void testWriteTransactionAsync() {
     AsyncSession session = driver.asyncSession();
     session.writeTransactionAsync(tx -> tx.runAsync("CREATE (n:Person) RETURN n")
-        .thenCompose(ResultCursor::singleAsync)
+            .thenCompose(ResultCursor::singleAsync)
     ).whenComplete((record, error) -> {
       if (error != null) {
         error.printStackTrace();
@@ -81,7 +85,7 @@ public class AsyncTracingTest {
   public void testRunAsync() {
     AsyncSession session = driver.asyncSession();
     session.runAsync("UNWIND range(1, 10) AS x RETURN x")
-        .whenComplete((statementResultCursor, throwable) -> session.closeAsync());
+            .whenComplete((statementResultCursor, throwable) -> session.closeAsync());
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(1));
 

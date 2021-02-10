@@ -48,6 +48,11 @@
       <name>Sergei Malafeev</name>
       <email>sergeymalafeev@gmail.com</email>
     </developer>
+    <developer>
+      <id>maxim86</id>
+      <name>Max Iaichnikov</name>
+      <email>maxim86@me.com</email>
+    </developer>
   </developers>
 
   <issueManagement>
@@ -64,8 +69,11 @@
     <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version>
     <jacoco-maven-plugin.version>0.8.3</jacoco-maven-plugin.version>
 
-    <neo4j-java-driver.version>4.0.0</neo4j-java-driver.version>
-    <neo4j-harness.version>3.5.14</neo4j-harness.version>
+    <neo4j-java-driver.version>4.2.0</neo4j-java-driver.version>
+    <testcontainers.version>1.15.1</testcontainers.version>
+    <awaitility.version>4.0.0</awaitility.version>
+    <junit.version>4.13.1</junit.version>
+    <slf4j.version>1.7.30</slf4j.version>
   </properties>
 
   <dependencies>
@@ -83,9 +91,16 @@
     </dependency>
 
     <dependency>
-      <groupId>org.neo4j.test</groupId>
-      <artifactId>neo4j-harness</artifactId>
-      <version>${neo4j-harness.version}</version>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>neo4j</artifactId>
+      <version>${testcontainers.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -99,16 +114,31 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>3.1.6</version>
+      <version>${awaitility.version}</version>
       <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.1</version>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -243,6 +273,4 @@
       </build>
     </profile>
   </profiles>
-
-
 </project>
