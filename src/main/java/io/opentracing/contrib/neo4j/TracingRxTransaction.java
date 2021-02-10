@@ -33,17 +33,11 @@ public class TracingRxTransaction implements RxTransaction {
   private final RxTransaction transaction;
   private final Span parent;
   private final Tracer tracer;
-  private final boolean finishSpan;
 
   public TracingRxTransaction(RxTransaction transaction, Span parent, Tracer tracer) {
-    this(transaction, parent, tracer, false);
-  }
-
-  public TracingRxTransaction(RxTransaction transaction, Span parent, Tracer tracer, boolean finishSpan) {
     this.transaction = transaction;
     this.tracer = tracer;
     this.parent = parent;
-    this.finishSpan = finishSpan;
   }
 
   @Override

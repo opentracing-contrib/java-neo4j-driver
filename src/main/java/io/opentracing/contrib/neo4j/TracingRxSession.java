@@ -49,6 +49,7 @@ public class TracingRxSession implements RxSession {
   @Override
   public Publisher<RxTransaction> beginTransaction(TransactionConfig transactionConfig) {
     Span span = TracingHelper.build("transactionRx", tracer);
+    span.setTag("config", transactionConfig.toString());
     Mono<RxTransaction> transaction = Mono.from(rxSession.beginTransaction(transactionConfig));
     return transaction.map(tr -> new TracingRxTransaction(tr, span, tracer));
   }

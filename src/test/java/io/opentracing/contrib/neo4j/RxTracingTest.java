@@ -24,8 +24,10 @@ import org.neo4j.driver.AuthToken;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.driver.reactive.RxResult;
 import org.neo4j.driver.reactive.RxSession;
+import org.neo4j.driver.reactive.RxTransaction;
 import org.neo4j.driver.summary.ResultSummary;
 import org.testcontainers.containers.Neo4jContainer;
 import reactor.core.publisher.Flux;
@@ -40,8 +42,7 @@ import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_IMAGE;
 import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_PASSWORD;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class RxTracingTest {
 
@@ -133,6 +134,67 @@ public class RxTracingTest {
     List<MockSpan> spans = tracer.finishedSpans();
     assertEquals(1, spans.size());
     validateSpans(spans, "runRx");
+
+    assertNull(tracer.activeSpan());
+  }
+
+  @Test
+  public void testRunInTransactionRx() {
+    String query = "UNWIND range(1, 10) AS x RETURN x";
+
+    Flux<ResultSummary> resultSummaries = Flux.usingWhen(
+            Mono.fromSupplier(driver::rxSession),
+            session -> Flux.usingWhen(
+                    session.beginTransaction(),
+                    tr -> {
+                      RxResult result = tr.run(query);
+                      return Flux.from(result.records())
+                              .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
+                    },
+                    RxTransaction::commit),
+            RxSession::close);
+
+    resultSummaries.as(StepVerifier::create)
+            .expectNextCount(1)
+            .verifyComplete();
+
+    await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+    List<MockSpan> spans = tracer.finishedSpans();
+    assertEquals(2, spans.size());
+    validateSpans(spans, "runRx", "transactionRx");
+
+    assertNull(tracer.activeSpan());
+  }
+
+  @Test
+  public void testRunInTransactionRxWithFailure() {
+    String wrongQuery = "UNWIND range(1, 10) AS x";
+
+    Flux<ResultSummary> resultSummaries = Flux.usingWhen(
+            Mono.fromSupplier(driver::rxSession),
+            session -> Flux.usingWhen(
+                    session.beginTransaction(),
+                    tr -> {
+                      RxResult result = tr.run(wrongQuery);
+                      return Flux.from(result.records())
+                              .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
+                    },
+                    RxTransaction::rollback),
+            RxSession::close);
+
+    resultSummaries.as(StepVerifier::create)
+            .expectErrorSatisfies(error -> {
+                      assertTrue(error instanceof ClientException);
+                      assertTrue(error.getMessage().contains("Query cannot conclude with UNWIND"));
+                    }
+            ).verify();
+
+    await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+    List<MockSpan> spans = tracer.finishedSpans();
+    assertEquals(2, spans.size());
+    validateSpans(spans, "runRx", "transactionRx");
 
     assertNull(tracer.activeSpan());
   }

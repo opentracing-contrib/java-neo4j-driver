@@ -31,17 +31,11 @@ public class TracingAsyncTransaction implements AsyncTransaction {
   private final AsyncTransaction transaction;
   private final Span parent;
   private final Tracer tracer;
-  private final boolean finishSpan;
 
   public TracingAsyncTransaction(AsyncTransaction transaction, Span parent, Tracer tracer) {
-    this(transaction, parent, tracer, false);
-  }
-
-  public TracingAsyncTransaction(AsyncTransaction transaction, Span parent, Tracer tracer, boolean finishSpan) {
     this.transaction = transaction;
     this.tracer = tracer;
     this.parent = parent;
-    this.finishSpan = finishSpan;
   }
 
   @Override

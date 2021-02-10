@@ -16,28 +16,28 @@ package io.opentracing.contrib.neo4j;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.neo4j.driver.AuthToken;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.ResultCursor;
+import org.neo4j.driver.exceptions.ClientException;
+import org.neo4j.driver.summary.ResultSummary;
 import org.testcontainers.containers.Neo4jContainer;
 
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_IMAGE;
 import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_PASSWORD;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 public class AsyncTracingTest {
 
@@ -93,6 +93,53 @@ public class AsyncTracingTest {
 
     List<MockSpan> spans = tracer.finishedSpans();
     assertEquals(1, spans.size());
+    validateSpans(spans);
+
+    assertNull(tracer.activeSpan());
+  }
+
+  @Test
+  public void testRunInTransactionAsync() {
+    AsyncSession session = driver.asyncSession();
+    String query = "UNWIND range(1, 10) AS x RETURN x";
+
+    session.beginTransactionAsync()
+            .thenCompose(tx -> tx.runAsync(query).thenCompose(ResultCursor::consumeAsync)
+                    .whenComplete((r, e) -> {
+                      assertNull(e);
+                      tx.commitAsync();
+                    }))
+            .whenComplete((r, throwable) -> session.closeAsync());
+
+    await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+    List<MockSpan> spans = tracer.finishedSpans();
+    assertEquals(2, spans.size());
+    validateSpans(spans);
+
+    assertNull(tracer.activeSpan());
+  }
+
+  @Test
+  public void testRunInTransactionAsyncWithError() {
+    AsyncSession session = driver.asyncSession();
+    String wrongQuery = "UNWIND range(1, 10) AS x";
+
+    session.beginTransactionAsync()
+            .thenCompose(tx -> tx.runAsync(wrongQuery).thenCompose(ResultCursor::consumeAsync)
+                    .whenComplete((r, e) -> {
+                      assertNotNull(e);
+                      assertTrue(e instanceof CompletionException);
+                      assertTrue(e.getMessage().contains("Query cannot conclude with UNWIND"));
+
+                      tx.rollbackAsync();
+                    }))
+            .whenComplete((r, throwable) -> session.closeAsync());
+
+    await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+    List<MockSpan> spans = tracer.finishedSpans();
+    assertEquals(2, spans.size());
     validateSpans(spans);
 
     assertNull(tracer.activeSpan());

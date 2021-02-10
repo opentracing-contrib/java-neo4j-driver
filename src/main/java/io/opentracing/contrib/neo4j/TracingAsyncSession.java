@@ -16,17 +16,14 @@ package io.opentracing.contrib.neo4j;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
-import org.neo4j.driver.Bookmark;
-import org.neo4j.driver.Query;
-import org.neo4j.driver.Record;
-import org.neo4j.driver.TransactionConfig;
-import org.neo4j.driver.Value;
+import org.neo4j.driver.*;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.AsyncTransactionWork;
 import org.neo4j.driver.async.ResultCursor;
+
+import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 import static io.opentracing.contrib.neo4j.TracingHelper.*;
 
@@ -42,14 +39,16 @@ public class TracingAsyncSession implements AsyncSession {
 
   @Override
   public CompletionStage<AsyncTransaction> beginTransactionAsync() {
-    // TODO
-    return session.beginTransactionAsync();
+    Span span = TracingHelper.build("transactionAsync", tracer);
+    CompletionStage<AsyncTransaction> transactionAsync = session.beginTransactionAsync();
+    return transactionAsync.thenApply(tr -> new TracingAsyncTransaction(tr, span, tracer));
   }
 
   @Override
   public CompletionStage<AsyncTransaction> beginTransactionAsync(TransactionConfig config) {
-    // TODO
-    return session.beginTransactionAsync(config);
+    Span span = TracingHelper.build("transactionAsync", tracer);
+    CompletionStage<AsyncTransaction> transactionAsync = session.beginTransactionAsync(config);
+    return transactionAsync.thenApply(tr -> new TracingAsyncTransaction(tr, span, tracer));
   }
 
   @Override
