@@ -16,22 +16,22 @@ package io.opentracing.contrib.neo4j;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
 import org.neo4j.driver.AuthToken;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.async.AsyncSession;
+import org.neo4j.driver.async.AsyncTransaction;
 import org.neo4j.driver.async.ResultCursor;
-import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.driver.summary.ResultSummary;
 import org.testcontainers.containers.Neo4jContainer;
 
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_IMAGE;
 import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_PASSWORD;
@@ -99,19 +99,18 @@ public class AsyncTracingTest {
   }
 
   @Test
-  public void testRunInTransactionAsync() {
+  public void testRunInTransactionAsync() throws Exception {
     AsyncSession session = driver.asyncSession();
-    String query = "UNWIND range(1, 10) AS x RETURN x";
+    String query = "UNWIND range(1, 10) AS x CREATE (n:Node{id: x}) RETURN x";
 
-    session.beginTransactionAsync()
-            .thenCompose(tx -> tx.runAsync(query).thenCompose(ResultCursor::consumeAsync)
-                    .whenComplete((r, e) -> {
-                      assertNull(e);
-                      tx.commitAsync();
-                    }))
-            .whenComplete((r, throwable) -> session.closeAsync());
+    CompletableFuture<Void> result = session.beginTransactionAsync()
+            .thenCompose(tx -> tx.runAsync(query).thenApply(ignore -> tx))
+            .thenCompose(AsyncTransaction::commitAsync)
+            .toCompletableFuture();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+    assertFalse(result.isCompletedExceptionally());
 
     List<MockSpan> spans = tracer.finishedSpans();
     assertEquals(2, spans.size());
@@ -121,11 +120,11 @@ public class AsyncTracingTest {
   }
 
   @Test
-  public void testRunInTransactionAsyncWithError() {
+  public void testRunInTransactionAsyncWithError() throws Exception {
     AsyncSession session = driver.asyncSession();
     String wrongQuery = "UNWIND range(1, 10) AS x";
 
-    session.beginTransactionAsync()
+    CompletableFuture<ResultSummary> result = session.beginTransactionAsync()
             .thenCompose(tx -> tx.runAsync(wrongQuery).thenCompose(ResultCursor::consumeAsync)
                     .whenComplete((r, e) -> {
                       assertNotNull(e);
@@ -134,9 +133,12 @@ public class AsyncTracingTest {
 
                       tx.rollbackAsync();
                     }))
-            .whenComplete((r, throwable) -> session.closeAsync());
+            .whenComplete((r, throwable) -> session.closeAsync())
+            .toCompletableFuture();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+    assertTrue(result.isCompletedExceptionally());
 
     List<MockSpan> spans = tracer.finishedSpans();
     assertEquals(2, spans.size());
