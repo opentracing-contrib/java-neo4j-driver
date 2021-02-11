@@ -44,21 +44,21 @@ public class TracingRxTransaction implements RxTransaction {
   @Override
   public <T> Publisher<T> commit() {
     return Mono.<T>from(transaction.commit())
-            .doOnSuccess(t -> parent.finish())
-            .doOnError(throwable -> {
-              onError(throwable, parent);
-              parent.finish();
-            });
+        .doOnSuccess(t -> parent.finish())
+        .doOnError(throwable -> {
+          onError(throwable, parent);
+          parent.finish();
+        });
   }
 
   @Override
   public <T> Publisher<T> rollback() {
     return Mono.<T>from(transaction.rollback())
-            .doOnSuccess(t -> parent.finish())
-            .doOnError(throwable -> {
-              onError(throwable, parent);
-              parent.finish();
-            });
+        .doOnSuccess(t -> parent.finish())
+        .doOnError(throwable -> {
+          onError(throwable, parent);
+          parent.finish();
+        });
   }
 
   @Override

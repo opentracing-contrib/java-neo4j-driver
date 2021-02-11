@@ -42,7 +42,8 @@ public class TracingTest {
   private final MockTracer tracer = new MockTracer();
 
   @ClassRule
-  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE).withAdminPassword(NEO4J_PASSWORD);
+  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE)
+      .withAdminPassword(NEO4J_PASSWORD);
 
   private Driver driver;
 
@@ -65,10 +66,10 @@ public class TracingTest {
     try (Session session = driver.session()) {
       String greeting = session.writeTransaction(tx -> {
         Result result = tx.run(
-                "CREATE (a:Greeting) " +
-                        "SET a.message = $message " +
-                        "RETURN a.message + ', from node ' + id(a)",
-                parameters("message", message));
+            "CREATE (a:Greeting) " +
+                "SET a.message = $message " +
+                "RETURN a.message + ', from node ' + id(a)",
+            parameters("message", message));
         tx.run("CREATE (n:Person) RETURN n");
         return result.single().get(0).asString();
       });

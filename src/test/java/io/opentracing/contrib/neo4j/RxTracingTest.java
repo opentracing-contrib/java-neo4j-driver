@@ -50,7 +50,8 @@ public class RxTracingTest {
   private final MockTracer tracer = new MockTracer();
 
   @ClassRule
-  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE).withAdminPassword(NEO4J_PASSWORD);
+  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE)
+      .withAdminPassword(NEO4J_PASSWORD);
 
   private Driver driver;
 
@@ -70,16 +71,17 @@ public class RxTracingTest {
   public void testWriteTransactionRx() {
     String query = "CREATE (n:Person) RETURN n";
     Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
-            session -> session.writeTransaction(tx -> {
-                      RxResult result = tx.run(query);
-                      return Flux.from(result.records())
-                              .doOnNext(record -> System.out.println(record.toString())).then(Mono.from(result.consume()));
-                    }
-            ), RxSession::close);
+        session -> session.writeTransaction(tx -> {
+              RxResult result = tx.run(query);
+              return Flux.from(result.records())
+                  .doOnNext(record -> System.out.println(record.toString()))
+                  .then(Mono.from(result.consume()));
+            }
+        ), RxSession::close);
 
     resultSummaries.as(StepVerifier::create)
-            .expectNextCount(1)
-            .verifyComplete();
+        .expectNextCount(1)
+        .verifyComplete();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
 
@@ -94,16 +96,17 @@ public class RxTracingTest {
   public void testReadTransactionRx() {
     String query = "UNWIND range(1, 10) AS x RETURN x";
     Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
-            session -> session.readTransaction(tx -> {
-                      RxResult result = tx.run(query);
-                      return Flux.from(result.records())
-                              .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
-                    }
-            ), RxSession::close);
+        session -> session.readTransaction(tx -> {
+              RxResult result = tx.run(query);
+              return Flux.from(result.records())
+                  .doOnNext(record -> System.out.println(record.get(0).asInt()))
+                  .then(Mono.from(result.consume()));
+            }
+        ), RxSession::close);
 
     resultSummaries.as(StepVerifier::create)
-            .expectNextCount(1)
-            .verifyComplete();
+        .expectNextCount(1)
+        .verifyComplete();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
 
@@ -119,16 +122,17 @@ public class RxTracingTest {
     String query = "UNWIND range(1, 10) AS x RETURN x";
 
     Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
-            session -> {
-              RxResult result = session.run(query);
-              return Flux.from(result.records())
-                      .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
-            },
-            RxSession::close);
+        session -> {
+          RxResult result = session.run(query);
+          return Flux.from(result.records())
+              .doOnNext(record -> System.out.println(record.get(0).asInt()))
+              .then(Mono.from(result.consume()));
+        },
+        RxSession::close);
 
     resultSummaries.as(StepVerifier::create)
-            .expectNextCount(1)
-            .verifyComplete();
+        .expectNextCount(1)
+        .verifyComplete();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(1));
 
@@ -144,20 +148,21 @@ public class RxTracingTest {
     String query = "UNWIND range(1, 10) AS x RETURN x";
 
     Flux<ResultSummary> resultSummaries = Flux.usingWhen(
-            Mono.fromSupplier(driver::rxSession),
-            session -> Flux.usingWhen(
-                    session.beginTransaction(),
-                    tr -> {
-                      RxResult result = tr.run(query);
-                      return Flux.from(result.records())
-                              .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
-                    },
-                    RxTransaction::commit),
-            RxSession::close);
+        Mono.fromSupplier(driver::rxSession),
+        session -> Flux.usingWhen(
+            session.beginTransaction(),
+            tr -> {
+              RxResult result = tr.run(query);
+              return Flux.from(result.records())
+                  .doOnNext(record -> System.out.println(record.get(0).asInt()))
+                  .then(Mono.from(result.consume()));
+            },
+            RxTransaction::commit),
+        RxSession::close);
 
     resultSummaries.as(StepVerifier::create)
-            .expectNextCount(1)
-            .verifyComplete();
+        .expectNextCount(1)
+        .verifyComplete();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
 
@@ -173,23 +178,24 @@ public class RxTracingTest {
     String wrongQuery = "UNWIND range(1, 10) AS x";
 
     Flux<ResultSummary> resultSummaries = Flux.usingWhen(
-            Mono.fromSupplier(driver::rxSession),
-            session -> Flux.usingWhen(
-                    session.beginTransaction(),
-                    tr -> {
-                      RxResult result = tr.run(wrongQuery);
-                      return Flux.from(result.records())
-                              .doOnNext(record -> System.out.println(record.get(0).asInt())).then(Mono.from(result.consume()));
-                    },
-                    RxTransaction::rollback),
-            RxSession::close);
+        Mono.fromSupplier(driver::rxSession),
+        session -> Flux.usingWhen(
+            session.beginTransaction(),
+            tr -> {
+              RxResult result = tr.run(wrongQuery);
+              return Flux.from(result.records())
+                  .doOnNext(record -> System.out.println(record.get(0).asInt()))
+                  .then(Mono.from(result.consume()));
+            },
+            RxTransaction::rollback),
+        RxSession::close);
 
     resultSummaries.as(StepVerifier::create)
-            .expectErrorSatisfies(error -> {
-                      assertTrue(error instanceof ClientException);
-                      assertTrue(error.getMessage().contains("Query cannot conclude with UNWIND"));
-                    }
-            ).verify();
+        .expectErrorSatisfies(error -> {
+              assertTrue(error instanceof ClientException);
+              assertTrue(error.getMessage().contains("Query cannot conclude with UNWIND"));
+            }
+        ).verify();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
 

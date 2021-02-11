@@ -58,7 +58,7 @@ public class TracingSession implements Session {
   public <T> T readTransaction(TransactionWork<T> work) {
     Span span = TracingHelper.build("readTransaction", tracer);
     return decorate(() -> session.readTransaction(
-            new TracingTransactionWork<>(work, span, tracer)), span, tracer);
+        new TracingTransactionWork<>(work, span, tracer)), span, tracer);
   }
 
   @Override
@@ -66,14 +66,14 @@ public class TracingSession implements Session {
     Span span = TracingHelper.build("readTransaction", tracer);
     span.setTag("config", config.toString());
     return decorate(() -> session.readTransaction(
-            new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
+        new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
   }
 
   @Override
   public <T> T writeTransaction(TransactionWork<T> work) {
     Span span = TracingHelper.build("writeTransaction", tracer);
     return decorate(() -> session.writeTransaction(
-            new TracingTransactionWork<>(work, span, tracer)), span, tracer);
+        new TracingTransactionWork<>(work, span, tracer)), span, tracer);
   }
 
   @Override
@@ -81,7 +81,7 @@ public class TracingSession implements Session {
     Span span = TracingHelper.build("writeTransaction", tracer);
     span.setTag("config", config.toString());
     return decorate(() -> session.writeTransaction(
-            new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
+        new TracingTransactionWork<>(work, span, tracer), config), span, tracer);
   }
 
   @Override

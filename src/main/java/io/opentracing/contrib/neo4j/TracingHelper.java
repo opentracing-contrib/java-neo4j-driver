@@ -36,9 +36,9 @@ class TracingHelper {
 
   static Span build(String operationName, Span parent, Tracer tracer) {
     SpanBuilder builder = tracer.buildSpan(operationName)
-            .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
-            .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
-            .withTag(Tags.DB_TYPE.getKey(), DB_TYPE);
+        .withTag(Tags.COMPONENT.getKey(), COMPONENT_NAME)
+        .withTag(Tags.SPAN_KIND.getKey(), Tags.SPAN_KIND_CLIENT)
+        .withTag(Tags.DB_TYPE.getKey(), DB_TYPE);
     if (parent != null) {
       builder.asChildOf(parent);
     }
@@ -65,9 +65,9 @@ class TracingHelper {
       return "";
     }
     return map.entrySet()
-            .stream()
-            .map(entry -> entry.getKey() + " -> " + entry.getValue())
-            .collect(Collectors.joining(", "));
+        .stream()
+        .map(entry -> entry.getKey() + " -> " + entry.getValue())
+        .collect(Collectors.joining(", "));
   }
 
   static CompletionStage<ResultCursor> decorate(CompletionStage<ResultCursor> stage, Span span) {

@@ -60,51 +60,63 @@ public class TracingRxSession implements RxSession {
   }
 
   @Override
-  public <T> Publisher<T> readTransaction(RxTransactionWork<? extends Publisher<T>> rxTransactionWork) {
+  public <T> Publisher<T> readTransaction(
+      RxTransactionWork<? extends Publisher<T>> rxTransactionWork) {
     Span span = TracingHelper.build("readTransactionRx", tracer);
 
-    return Flux.from(rxSession.readTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer)))
-            .doOnComplete(span::finish)
-            .doOnError(throwable -> {
-              onError(throwable, span);
-              span.finish();
-            });
+    return Flux.from(
+        rxSession.readTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer)))
+        .doOnComplete(span::finish)
+        .doOnError(throwable -> {
+          onError(throwable, span);
+          span.finish();
+        });
   }
 
   @Override
-  public <T> Publisher<T> readTransaction(RxTransactionWork<? extends Publisher<T>> rxTransactionWork, TransactionConfig transactionConfig) {
+  public <T> Publisher<T> readTransaction(
+      RxTransactionWork<? extends Publisher<T>> rxTransactionWork,
+      TransactionConfig transactionConfig) {
     Span span = TracingHelper.build("readTransactionRx", tracer);
 
-    return Flux.from(rxSession.readTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer), transactionConfig))
-            .doOnComplete(span::finish)
-            .doOnError(throwable -> {
-              onError(throwable, span);
-              span.finish();
-            });
+    return Flux.from(rxSession
+        .readTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer),
+            transactionConfig))
+        .doOnComplete(span::finish)
+        .doOnError(throwable -> {
+          onError(throwable, span);
+          span.finish();
+        });
   }
 
   @Override
-  public <T> Publisher<T> writeTransaction(RxTransactionWork<? extends Publisher<T>> rxTransactionWork) {
+  public <T> Publisher<T> writeTransaction(
+      RxTransactionWork<? extends Publisher<T>> rxTransactionWork) {
     Span span = TracingHelper.build("writeTransactionRx", tracer);
 
-    return Flux.from(rxSession.writeTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer)))
-            .doOnComplete(span::finish)
-            .doOnError(throwable -> {
-              onError(throwable, span);
-              span.finish();
-            });
+    return Flux.from(
+        rxSession.writeTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer)))
+        .doOnComplete(span::finish)
+        .doOnError(throwable -> {
+          onError(throwable, span);
+          span.finish();
+        });
   }
 
   @Override
-  public <T> Publisher<T> writeTransaction(RxTransactionWork<? extends Publisher<T>> rxTransactionWork, TransactionConfig transactionConfig) {
+  public <T> Publisher<T> writeTransaction(
+      RxTransactionWork<? extends Publisher<T>> rxTransactionWork,
+      TransactionConfig transactionConfig) {
     Span span = TracingHelper.build("writeTransactionRx", tracer);
 
-    return Flux.from(rxSession.writeTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer), transactionConfig))
-            .doOnComplete(span::finish)
-            .doOnError(throwable -> {
-              onError(throwable, span);
-              span.finish();
-            });
+    return Flux.from(rxSession
+        .writeTransaction(new TracingRxTransactionWork<>(rxTransactionWork, span, tracer),
+            transactionConfig))
+        .doOnComplete(span::finish)
+        .doOnError(throwable -> {
+          onError(throwable, span);
+          span.finish();
+        });
   }
 
   @Override
@@ -127,7 +139,8 @@ public class TracingRxSession implements RxSession {
   }
 
   @Override
-  public RxResult run(String query, Map<String, Object> parameters, TransactionConfig transactionConfig) {
+  public RxResult run(String query, Map<String, Object> parameters,
+      TransactionConfig transactionConfig) {
     Span span = TracingHelper.build("runRx", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
     span.setTag("config", transactionConfig.toString());

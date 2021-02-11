@@ -38,7 +38,8 @@ public class TracingTransaction implements Transaction {
     this(transaction, parent, tracer, false);
   }
 
-  public TracingTransaction(Transaction transaction, Span parent, Tracer tracer, boolean finishSpan) {
+  public TracingTransaction(Transaction transaction, Span parent, Tracer tracer,
+      boolean finishSpan) {
     this.transaction = transaction;
     this.tracer = tracer;
     this.parent = parent;

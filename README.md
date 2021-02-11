@@ -1,11 +1,13 @@
 [![Build Status][ci-img]][ci] [![Coverage Status][cov-img]][cov] [![Released Version][maven-img]][maven] [![Apache-2.0 license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # OpenTracing Neo4j Driver 4.x Instrumentation
+
 OpenTracing instrumentation for Neo4j Driver 4.x.
 
 ## Installation
 
 pom.xml
+
 ```xml
 <dependency>
     <groupId>io.opentracing.contrib</groupId>
@@ -26,6 +28,7 @@ Driver driver = new TracingDriver(GraphDatabase.driver(...), tracer);
 ```
 
 ### OGM
+
 ```java
 // Create BoltDriver from decorated neo4j driver:
 Driver boltDriver = new BoltDriver(new TracingDriver(GraphDatabase.driver(...), tracer));
@@ -39,9 +42,14 @@ SessionFactory sessionFactory = new SessionFactory(boltDriver);
 [Apache 2.0 License](./LICENSE).
 
 [ci-img]: https://travis-ci.org/opentracing-contrib/java-neo4j-driver.svg?branch=master
+
 [ci]: https://travis-ci.org/opentracing-contrib/java-neo4j-driver
+
 [cov-img]: https://coveralls.io/repos/github/opentracing-contrib/java-neo4j-driver/badge.svg?branch=master
+
 [cov]: https://coveralls.io/github/opentracing-contrib/java-neo4j-driver?branch=master
+
 [maven-img]: https://img.shields.io/maven-central/v/io.opentracing.contrib/opentracing-neo4j-driver.svg
+
 [maven]: http://search.maven.org/#search%7Cga%7C1%7Copentracing-neo4j-driver
 

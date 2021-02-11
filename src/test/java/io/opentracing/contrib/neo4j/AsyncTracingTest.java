@@ -50,7 +50,8 @@ public class AsyncTracingTest {
   private final MockTracer tracer = new MockTracer();
 
   @ClassRule
-  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE).withAdminPassword(NEO4J_PASSWORD);
+  public static Neo4jContainer neo4j = new Neo4jContainer(NEO4J_IMAGE)
+      .withAdminPassword(NEO4J_PASSWORD);
 
   private Driver driver;
 
@@ -70,7 +71,7 @@ public class AsyncTracingTest {
   public void testWriteTransactionAsync() {
     AsyncSession session = driver.asyncSession();
     session.writeTransactionAsync(tx -> tx.runAsync("CREATE (n:Person) RETURN n")
-            .thenCompose(ResultCursor::singleAsync)
+        .thenCompose(ResultCursor::singleAsync)
     ).whenComplete((record, error) -> {
       if (error != null) {
         error.printStackTrace();
@@ -93,7 +94,7 @@ public class AsyncTracingTest {
   public void testRunAsync() {
     AsyncSession session = driver.asyncSession();
     session.runAsync("UNWIND range(1, 10) AS x RETURN x")
-            .whenComplete((statementResultCursor, throwable) -> session.closeAsync());
+        .whenComplete((statementResultCursor, throwable) -> session.closeAsync());
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(1));
 
@@ -110,9 +111,9 @@ public class AsyncTracingTest {
     String query = "UNWIND range(1, 10) AS x CREATE (n:Node{id: x}) RETURN x";
 
     CompletableFuture<Void> result = session.beginTransactionAsync()
-            .thenCompose(tx -> tx.runAsync(query).thenApply(ignore -> tx))
-            .thenCompose(AsyncTransaction::commitAsync)
-            .toCompletableFuture();
+        .thenCompose(tx -> tx.runAsync(query).thenApply(ignore -> tx))
+        .thenCompose(AsyncTransaction::commitAsync)
+        .toCompletableFuture();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
 
@@ -131,16 +132,16 @@ public class AsyncTracingTest {
     String wrongQuery = "UNWIND range(1, 10) AS x";
 
     CompletableFuture<ResultSummary> result = session.beginTransactionAsync()
-            .thenCompose(tx -> tx.runAsync(wrongQuery).thenCompose(ResultCursor::consumeAsync)
-                    .whenComplete((r, e) -> {
-                      assertNotNull(e);
-                      assertTrue(e instanceof CompletionException);
-                      assertTrue(e.getMessage().contains("Query cannot conclude with UNWIND"));
+        .thenCompose(tx -> tx.runAsync(wrongQuery).thenCompose(ResultCursor::consumeAsync)
+            .whenComplete((r, e) -> {
+              assertNotNull(e);
+              assertTrue(e instanceof CompletionException);
+              assertTrue(e.getMessage().contains("Query cannot conclude with UNWIND"));
 
-                      tx.rollbackAsync();
-                    }))
-            .whenComplete((r, throwable) -> session.closeAsync())
-            .toCompletableFuture();
+              tx.rollbackAsync();
+            }))
+        .whenComplete((r, throwable) -> session.closeAsync())
+        .toCompletableFuture();
 
     await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
 

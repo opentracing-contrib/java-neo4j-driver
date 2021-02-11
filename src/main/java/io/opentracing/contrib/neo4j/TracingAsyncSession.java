@@ -58,7 +58,8 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> readTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work) {
+  public <T> CompletionStage<T> readTransactionAsync(
+      AsyncTransactionWork<CompletionStage<T>> work) {
     Span span = TracingHelper.build("readTransactionAsync", tracer);
     try {
       return session.readTransactionAsync(new TracingAsyncTransactionWork<>(work, span, tracer))
@@ -76,7 +77,8 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> readTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work, TransactionConfig config) {
+  public <T> CompletionStage<T> readTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work,
+      TransactionConfig config) {
     Span span = TracingHelper.build("readTransactionAsync", tracer);
     span.setTag("config", config.toString());
     try {
@@ -115,7 +117,8 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public <T> CompletionStage<T> writeTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work, TransactionConfig config) {
+  public <T> CompletionStage<T> writeTransactionAsync(AsyncTransactionWork<CompletionStage<T>> work,
+      TransactionConfig config) {
     Span span = TracingHelper.build("writeTransactionAsync", tracer);
     span.setTag("config", config.toString());
     try {
@@ -143,7 +146,8 @@ public class TracingAsyncSession implements AsyncSession {
   }
 
   @Override
-  public CompletionStage<ResultCursor> runAsync(String query, Map<String, Object> parameters, TransactionConfig config) {
+  public CompletionStage<ResultCursor> runAsync(String query, Map<String, Object> parameters,
+      TransactionConfig config) {
     Span span = TracingHelper.build("runAsync", tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), query);
     if (isNotEmpty(parameters)) {

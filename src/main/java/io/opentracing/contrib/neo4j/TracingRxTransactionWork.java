@@ -27,7 +27,7 @@ public class TracingRxTransactionWork<T> implements RxTransactionWork<T> {
   private final RxTransactionWork<T> transactionWork;
 
   public TracingRxTransactionWork(RxTransactionWork<T> transactionWork, Span parent,
-                                  Tracer tracer) {
+      Tracer tracer) {
     this.transactionWork = transactionWork;
     this.tracer = tracer;
     this.parent = parent;

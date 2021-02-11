@@ -40,11 +40,11 @@ public class TracingRxResult implements RxResult {
   @Override
   public Publisher<Record> records() {
     return Flux.from(rxResult.records())
-            .doOnComplete(parent::finish)
-            .doOnError(throwable -> {
-              onError(throwable, parent);
-              parent.finish();
-            });
+        .doOnComplete(parent::finish)
+        .doOnError(throwable -> {
+          onError(throwable, parent);
+          parent.finish();
+        });
   }
 
   @Override
