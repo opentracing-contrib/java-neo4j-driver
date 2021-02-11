@@ -13,23 +13,29 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import io.opentracing.mock.MockSpan;
-import io.opentracing.mock.MockTracer;
-import io.opentracing.tag.Tags;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.neo4j.driver.*;
-import org.testcontainers.containers.Neo4jContainer;
-
-import java.util.List;
-
 import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_IMAGE;
 import static io.opentracing.contrib.neo4j.TestConstants.NEO4J_PASSWORD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.neo4j.driver.Values.parameters;
+
+import io.opentracing.mock.MockSpan;
+import io.opentracing.mock.MockTracer;
+import io.opentracing.tag.Tags;
+import java.util.List;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.neo4j.driver.AuthToken;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Query;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
+import org.testcontainers.containers.Neo4jContainer;
 
 public class TracingTest {
 

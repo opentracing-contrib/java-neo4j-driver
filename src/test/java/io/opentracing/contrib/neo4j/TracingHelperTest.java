@@ -13,13 +13,12 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import org.junit.Test;
-
-import java.util.Collections;
-
 import static io.opentracing.contrib.neo4j.TracingHelper.isNotEmpty;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Collections;
+import org.junit.Test;
 
 public class TracingHelperTest {
 

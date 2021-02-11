@@ -13,16 +13,15 @@
  */
 package io.opentracing.contrib.neo4j;
 
+import static io.opentracing.contrib.neo4j.TracingHelper.onError;
+
 import io.opentracing.Span;
+import java.util.List;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.internal.shaded.reactor.core.publisher.Flux;
 import org.neo4j.driver.reactive.RxResult;
 import org.neo4j.driver.summary.ResultSummary;
 import org.reactivestreams.Publisher;
-
-import java.util.List;
-
-import static io.opentracing.contrib.neo4j.TracingHelper.onError;
 
 public class TracingRxResult implements RxResult {
   private final RxResult rxResult;

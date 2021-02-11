@@ -14,6 +14,7 @@
 package io.opentracing.contrib.neo4j;
 
 import io.opentracing.Tracer;
+import java.util.concurrent.CompletionStage;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Metrics;
 import org.neo4j.driver.Session;
@@ -21,8 +22,6 @@ import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.reactive.RxSession;
 import org.neo4j.driver.types.TypeSystem;
-
-import java.util.concurrent.CompletionStage;
 
 public class TracingDriver implements Driver {
 

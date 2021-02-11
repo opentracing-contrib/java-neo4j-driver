@@ -13,9 +13,14 @@
  */
 package io.opentracing.contrib.neo4j;
 
+import static io.opentracing.contrib.neo4j.TracingHelper.isNotEmpty;
+import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
+import static io.opentracing.contrib.neo4j.TracingHelper.onError;
+
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
+import java.util.Map;
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Value;
@@ -23,10 +28,6 @@ import org.neo4j.driver.internal.shaded.reactor.core.publisher.Mono;
 import org.neo4j.driver.reactive.RxResult;
 import org.neo4j.driver.reactive.RxTransaction;
 import org.reactivestreams.Publisher;
-
-import java.util.Map;
-
-import static io.opentracing.contrib.neo4j.TracingHelper.*;
 
 public class TracingRxTransaction implements RxTransaction {
 

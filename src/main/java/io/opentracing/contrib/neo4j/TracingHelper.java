@@ -18,14 +18,12 @@ import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.Tracer.SpanBuilder;
 import io.opentracing.tag.Tags;
-import org.neo4j.driver.async.ResultCursor;
-import org.neo4j.driver.reactive.RxResult;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.neo4j.driver.async.ResultCursor;
 
 class TracingHelper {
 
