@@ -22,7 +22,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.neo4j.driver.*;
 import org.testcontainers.containers.Neo4jContainer;
-import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 

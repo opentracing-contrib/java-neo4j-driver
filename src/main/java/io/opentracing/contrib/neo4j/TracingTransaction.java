@@ -13,18 +13,19 @@
  */
 package io.opentracing.contrib.neo4j;
 
-import static io.opentracing.contrib.neo4j.TracingHelper.decorate;
-import static io.opentracing.contrib.neo4j.TracingHelper.mapToString;
-
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
+
 import java.util.Map;
+
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Transaction;
 import org.neo4j.driver.Value;
+
+import static io.opentracing.contrib.neo4j.TracingHelper.*;
 
 public class TracingTransaction implements Transaction {
 
@@ -33,15 +34,11 @@ public class TracingTransaction implements Transaction {
   private final Tracer tracer;
   private final boolean finishSpan;
 
-  public TracingTransaction(
-      Transaction transaction, Span parent,
-      Tracer tracer) {
+  public TracingTransaction(Transaction transaction, Span parent, Tracer tracer) {
     this(transaction, parent, tracer, false);
   }
 
-  public TracingTransaction(
-      Transaction transaction, Span parent, Tracer tracer,
-      boolean finishSpan) {
+  public TracingTransaction(Transaction transaction, Span parent, Tracer tracer, boolean finishSpan) {
     this.transaction = transaction;
     this.tracer = tracer;
     this.parent = parent;
@@ -77,33 +74,33 @@ public class TracingTransaction implements Transaction {
   }
 
   @Override
-  public Result run(String statementTemplate, Value parameters) {
+  public Result run(String statementTemplate, Value parametersValue) {
     Span span = TracingHelper.build("run", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    span.setTag("parameters", parameters.toString());
+    Map<String, Object> parameters = parametersValue.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     return decorate(() -> transaction.run(statementTemplate, parameters), span, tracer);
   }
 
   @Override
-  public Result run(
-      String statementTemplate,
-      Map<String, Object> statementParameters) {
+  public Result run(String statementTemplate, Map<String, Object> parameters) {
     Span span = TracingHelper.build("run", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    if (statementParameters != null) {
-      span.setTag("parameters", mapToString(statementParameters));
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
-    return decorate(() -> transaction.run(statementTemplate, statementParameters), span, tracer);
+    return decorate(() -> transaction.run(statementTemplate, parameters), span, tracer);
   }
 
   @Override
-  public Result run(
-      String statementTemplate,
-      Record statementParameters) {
+  public Result run(String statementTemplate, Record statementParameters) {
     Span span = TracingHelper.build("run", parent, tracer);
     span.setTag(Tags.DB_STATEMENT.getKey(), statementTemplate);
-    if (statementParameters != null) {
-      span.setTag("parameters", mapToString(statementParameters.asMap()));
+    Map<String, Object> parameters = statementParameters.asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
     }
     return decorate(() -> transaction.run(statementTemplate, statementParameters), span, tracer);
   }
@@ -118,7 +115,11 @@ public class TracingTransaction implements Transaction {
   @Override
   public Result run(Query query) {
     Span span = TracingHelper.build("run", parent, tracer);
-    span.setTag(Tags.DB_STATEMENT.getKey(), query.toString());
+    span.setTag(Tags.DB_STATEMENT.getKey(), query.text());
+    Map<String, Object> parameters = query.parameters().asMap();
+    if (isNotEmpty(parameters)) {
+      span.setTag("parameters", mapToString(parameters));
+    }
     return decorate(() -> transaction.run(query), span, tracer);
   }
 }
