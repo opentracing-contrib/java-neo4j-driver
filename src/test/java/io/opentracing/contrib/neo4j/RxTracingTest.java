@@ -25,6 +25,8 @@ import static org.neo4j.driver.Values.parameters;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
+
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -213,7 +215,11 @@ public class RxTracingTest {
         String query = "UNWIND $list AS x RETURN x";
         Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
                 session -> session.readTransaction(tx -> {
-                            RxResult result = tx.run(query, parameters("list", List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)));
+                            List<Integer> list = new LinkedList<>();
+                            for (int i = 0; i < 10; i++) {
+                                list.add(i);
+                            }
+                            RxResult result = tx.run(query, parameters("list", list));
                             return Flux.from(result.records())
                                     .doOnNext(record -> System.out.println(record.get(0).asInt()))
                                     .then(Mono.from(result.consume()));
@@ -228,7 +234,7 @@ public class RxTracingTest {
 
         List<MockSpan> spans = tracer.finishedSpans();
         assertEquals(2, spans.size());
-        validateSpansWithParameter(spans, "list->[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]", "runRx", "readTransactionRx");
+        validateSpansWithParameter(spans, "list->[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]", "runRx", "readTransactionRx");
 
         assertNull(tracer.activeSpan());
     }
