@@ -19,6 +19,7 @@ import io.opentracing.Tracer;
 import io.opentracing.Tracer.SpanBuilder;
 import io.opentracing.tag.Tags;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
@@ -66,7 +67,15 @@ class TracingHelper {
     }
     return map.entrySet()
         .stream()
-        .map(entry -> entry.getKey() + " -> " + entry.getValue())
+        .map(entry -> {
+          Object value = entry.getValue();
+          if (!(value instanceof List)) {
+            return entry.getKey() + "->" + value;
+          }
+          return entry.getKey() + "->" + ((List<?>) value).stream()
+              .map(Object::toString)
+              .collect(Collectors.joining(", ", "[", "]"));
+        })
         .collect(Collectors.joining(", "));
   }
 

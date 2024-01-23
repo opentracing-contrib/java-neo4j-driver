@@ -20,11 +20,15 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.neo4j.driver.Values.parameters;
 
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.tag.Tags;
+
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
@@ -206,16 +210,58 @@ public class RxTracingTest {
     assertNull(tracer.activeSpan());
   }
 
-  private void validateSpans(List<MockSpan> spans, String... spanNames) {
-    for (int i = 0; i < spans.size(); i++) {
-      MockSpan span = spans.get(i);
-      assertEquals(spanNames[i], span.operationName());
-      assertEquals(span.tags().get(Tags.SPAN_KIND.getKey()), Tags.SPAN_KIND_CLIENT);
-      assertEquals(TracingHelper.COMPONENT_NAME, span.tags().get(Tags.COMPONENT.getKey()));
-      assertEquals(TracingHelper.DB_TYPE, span.tags().get(Tags.DB_TYPE.getKey()));
-      assertEquals(0, span.generatedErrors().size());
+    @Test
+    public void testReadTransactionRxUsingListParameter() {
+        String query = "UNWIND $list AS x RETURN x";
+        Flux<ResultSummary> resultSummaries = Flux.usingWhen(Mono.fromSupplier(driver::rxSession),
+                session -> session.readTransaction(tx -> {
+                            List<Integer> list = new LinkedList<>();
+                            for (int i = 0; i < 10; i++) {
+                                list.add(i);
+                            }
+                            RxResult result = tx.run(query, parameters("list", list));
+                            return Flux.from(result.records())
+                                    .doOnNext(record -> System.out.println(record.get(0).asInt()))
+                                    .then(Mono.from(result.consume()));
+                        }
+                ), RxSession::close);
+
+        resultSummaries.as(StepVerifier::create)
+                .expectNextCount(1)
+                .verifyComplete();
+
+        await().atMost(15, TimeUnit.SECONDS).until(reportedSpansSize(), equalTo(2));
+
+        List<MockSpan> spans = tracer.finishedSpans();
+        assertEquals(2, spans.size());
+        validateSpansWithParameter(spans, "list->[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]", "runRx", "readTransactionRx");
+
+        assertNull(tracer.activeSpan());
     }
-  }
+
+    private void validateSpansWithParameter(List<MockSpan> spans, String parameters, String... spanNames) {
+        for (int i = 0; i < spans.size(); i++) {
+            MockSpan span = spans.get(i);
+            assertEquals(spanNames[i], span.operationName());
+            assertEquals(span.tags().get(Tags.SPAN_KIND.getKey()), Tags.SPAN_KIND_CLIENT);
+            assertEquals(TracingHelper.COMPONENT_NAME, span.tags().get(Tags.COMPONENT.getKey()));
+            assertEquals(TracingHelper.DB_TYPE, span.tags().get(Tags.DB_TYPE.getKey()));
+            if (Objects.equals(span.operationName(), "runRx"))
+                assertEquals(parameters, span.tags().get("parameters"));
+            assertEquals(0, span.generatedErrors().size());
+        }
+    }
+
+    private void validateSpans(List<MockSpan> spans, String... spanNames) {
+        for (int i = 0; i < spans.size(); i++) {
+            MockSpan span = spans.get(i);
+            assertEquals(spanNames[i], span.operationName());
+            assertEquals(span.tags().get(Tags.SPAN_KIND.getKey()), Tags.SPAN_KIND_CLIENT);
+            assertEquals(TracingHelper.COMPONENT_NAME, span.tags().get(Tags.COMPONENT.getKey()));
+            assertEquals(TracingHelper.DB_TYPE, span.tags().get(Tags.DB_TYPE.getKey()));
+            assertEquals(0, span.generatedErrors().size());
+        }
+    }
 
   private Callable<Integer> reportedSpansSize() {
     return () -> tracer.finishedSpans().size();
